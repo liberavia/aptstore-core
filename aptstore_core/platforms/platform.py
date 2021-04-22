@@ -34,8 +34,6 @@ class Platform:
         :param expected_params:
         :return:
         """
-        print(list(entered_params))
-        print(expected_params)
         if list(set(entered_params).difference(expected_params)):
             inv = ','.join(list(set(entered_params).difference(expected_params)))
             raise ValueError('Unexpected arg(s) {} in kwargs'.format(inv))
