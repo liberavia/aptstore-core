@@ -40,6 +40,7 @@ class Platform:
         except PermissionError as err:
             print(err)
             sys.exit("Wrong permissions")
+        print("Permissions valid")
 
     def remove(self, **kwargs):
         self.action = ACTION_REMOVE
@@ -49,6 +50,7 @@ class Platform:
         except PermissionError as err:
             print(err)
             sys.exit("Wrong permissions")
+        print("Permissions valid")
 
     def validate_params(self, entered_params, expected_params):
         """
