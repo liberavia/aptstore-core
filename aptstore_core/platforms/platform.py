@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
+import sys
+
 import apt
 import hashlib
 import requests
@@ -18,7 +20,13 @@ class Platform:
 
     action = None
 
+    ident = None
+
+    admin_needed = None
+
     def __init__(self):
+        # admin_needed defaulted to False
+        self.admin_needed = False
         self.data = {}
 
     def activate_platform(self):
@@ -26,9 +34,21 @@ class Platform:
 
     def install(self, **kwargs):
         self.action = ACTION_INSTALL
+        self.ident = kwargs.get('ident')
+        try:
+            self.check_user_permission()
+        except PermissionError as err:
+            print(err)
+            sys.exit("Wrong permissions")
 
     def remove(self, **kwargs):
         self.action = ACTION_REMOVE
+        self.ident = kwargs.get('ident')
+        try:
+            self.check_user_permission()
+        except PermissionError as err:
+            print(err)
+            sys.exit("Wrong permissions")
 
     def validate_params(self, entered_params, expected_params):
         """
@@ -166,3 +186,24 @@ class Platform:
             if not pkg.is_installed:
                 pkg.mark_install()
         cache.commit()
+
+    def check_user_permission(self):
+        if os.getuid() != 0 and self.admin_needed:
+            raise PermissionError(
+                "Action needs administrative permission." 
+                "Please try 'sudo aptstore-core {platform} {action} {ident}' instead".format(
+                    platform=self.platform_name,
+                    action=self.action,
+                    ident=self.ident
+                )
+            )
+        if os.getuid() == 0 and not self.admin_needed:
+            raise PermissionError(
+                "Root rights are not allowed for action!" 
+                "Please try 'aptstore-core {platform} {action} {ident}' instead".format(
+                    platform=self.platform_name,
+                    action=self.action,
+                    ident=self.ident
+                )
+            )
+
