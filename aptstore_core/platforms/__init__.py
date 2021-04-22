@@ -3,7 +3,7 @@
 
 ACTION_INSTALL = 'install'
 ACTION_REMOVE = 'remove'
-ACTION_ADD = 'add-platform'
+ACTION_ACTIVATE = 'activate'
 
 PLATFORM_DEBIAN = 'debian'
 PLATFORM_FLATHUB = 'flathub'
@@ -39,7 +39,7 @@ def get_available_actions():
     available_actions = [
         ACTION_INSTALL,
         ACTION_REMOVE,
-        ACTION_ADD,
+        ACTION_ACTIVATE,
     ]
 
     return available_actions

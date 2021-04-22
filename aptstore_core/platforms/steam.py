@@ -2,7 +2,7 @@
 import os
 import subprocess
 import apt
-from . import ACTION_ADD
+from . import ACTION_ACTIVATE
 from . import PLATFORM_STEAM
 from .platform import Platform
 
@@ -13,7 +13,8 @@ class Steam(Platform):
     """
 
     def __init__(self):
-        super().__init__()
+        super(Steam, self).__init__()
+        self.platform_name = PLATFORM_STEAM
         self.data = {
             'paths': {
                 'steam': os.path.expanduser('~') + '/.aptstore/steam/',
@@ -43,6 +44,7 @@ class Steam(Platform):
         :param kwargs:
         :return:
         """
+        super(Steam, self).remove(kwargs)
         try:
             self.platform_initialized()
             expected_params = self.get_install_params()
@@ -61,6 +63,7 @@ class Steam(Platform):
         :param kwargs:
         :return:
         """
+        super(Steam, self).remove(kwargs)
         try:
             self.platform_initialized()
             expected_params = self.get_install_params()
@@ -84,8 +87,8 @@ class Steam(Platform):
         """
         steamcmd = self.data['binaries']['steamcmd']
         progress_path = self.data['paths']['progress']
-        message_output_file = self.get_message_filename(userident=login, appident=appid)
-        message_file_path = os.path.join(progress_path, message_output_file)
+        progress_file = self.get_progress_filename(userident=login, appident=appid)
+        progress_file_path = os.path.join(progress_path, progress_file)
 
         command_elements = [
             'unbuffer',
@@ -98,7 +101,7 @@ class Steam(Platform):
             'validate',
             '+quit',
             '>>',
-            message_file_path
+            progress_file_path
         ]
 
         start_command = ' '.join(command_elements)
@@ -107,7 +110,7 @@ class Steam(Platform):
             "Installing app via {platform}. Follow progress at {logfile}".
                 format(
                 platform=PLATFORM_STEAM,
-                logfile=message_file_path)
+                logfile=progress_file_path)
         )
 
     def remove_steam_app(self, appid, login, password):
@@ -121,8 +124,8 @@ class Steam(Platform):
         """
         steamcmd = self.data['binaries']['steamcmd']
         progress_path = self.data['paths']['progress']
-        message_output_file = self.get_message_filename(userident=login, appident=appid)
-        message_file_path = os.path.join(progress_path, message_output_file)
+        progress_file = self.get_progress_filename(userident=login, appident=appid)
+        progress_file_path = os.path.join(progress_path, progress_file)
 
         command_elements = [
             'unbuffer',
@@ -134,7 +137,7 @@ class Steam(Platform):
             appid,
             '+quit',
             '>>',
-            message_file_path
+            progress_file_path
         ]
 
         remove_command = ' '.join(command_elements)
@@ -143,7 +146,7 @@ class Steam(Platform):
             "Removing app via {platform}. Follow progress at {logfile}".
                 format(
                 platform=PLATFORM_STEAM,
-                logfile=message_file_path)
+                logfile=progress_file_path)
         )
 
     def get_install_params(self):
@@ -198,23 +201,7 @@ class Steam(Platform):
 
     def activate_platform(self):
         """
-        Install needed system dependencies
+        Perform anything needed
         :return:
         """
-
-        if os.getuid() != 0:
-            raise ValueError(
-                "Activating a platform needs root rights." 
-                "Please use 'sudo aptstore steam {action}' instead".format(action=ACTION_ADD)
-            )
-
-        cache = apt.cache.Cache()
-        cache.update()
-        cache.open()
-
-        packages = self.get_platform_dependencies()
-        for pkg_name in packages:
-            pkg = cache[pkg_name]
-            if not pkg.is_installed:
-                pkg.mark_install()
-        cache.commit()
+        self.install_system_dependencies()

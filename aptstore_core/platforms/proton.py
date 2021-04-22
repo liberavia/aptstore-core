@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
+import apt
 import os
 import subprocess
+from . import ACTION_ACTIVATE
 from . import PLATFORM_PROTON
 from .steam import Steam
 
@@ -9,6 +11,10 @@ class Proton(Steam):
     """
     Steam platform via proton
     """
+
+    def __init__(self):
+        super(Proton, self).__init__()
+        self.platform_name = PLATFORM_PROTON
 
     def install_steam_app(self, appid, login, password):
         """
@@ -21,8 +27,8 @@ class Proton(Steam):
         """
         steamcmd = self.data['binaries']['steamcmd']
         progress_path = self.data['paths']['progress']
-        message_output_file = self.get_message_filename(userident=login, appident=appid)
-        message_file_path = os.path.join(progress_path, message_output_file)
+        progress_file = self.get_progress_filename(userident=login, appident=appid)
+        progress_file_path = os.path.join(progress_path, progress_file)
 
         command_elements = [
             'unbuffer',
@@ -36,7 +42,7 @@ class Proton(Steam):
             'validate',
             '+quit',
             '>>',
-            message_file_path
+            progress_file_path
         ]
 
         start_command = ' '.join(command_elements)
@@ -45,12 +51,12 @@ class Proton(Steam):
             "Removing app via {platform}. Follow progress at {logfile}".
                 format(
                 platform=PLATFORM_PROTON,
-                logfile=message_file_path)
+                logfile=progress_file_path)
         )
 
     def remove_steam_app(self, appid, login, password):
         """
-        Performing removal of a steam app
+        Performing removal of a steam proton app
 
         :param appid:
         :param login:
@@ -59,8 +65,8 @@ class Proton(Steam):
         """
         steamcmd = self.data['binaries']['steamcmd']
         progress_path = self.data['paths']['progress']
-        message_output_file = self.get_message_filename(userident=login, appident=appid)
-        message_file_path = os.path.join(progress_path, message_output_file)
+        progress_file = self.get_progress_filename(userident=login, appident=appid)
+        progress_file_path = os.path.join(progress_path, progress_file)
 
         command_elements = [
             'unbuffer',
@@ -72,7 +78,7 @@ class Proton(Steam):
             appid,
             '+quit',
             '>>',
-            message_file_path
+            progress_file_path
         ]
 
         start_command = ' '.join(command_elements)
@@ -81,5 +87,7 @@ class Proton(Steam):
             "Removing app via {platform}. Follow progress at {logfile}".
                 format(
                 platform=PLATFORM_PROTON,
-                logfile=message_file_path)
+                logfile=progress_file_path)
         )
+
+

@@ -4,8 +4,7 @@ import apt
 import hashlib
 import requests
 import tarfile
-
-MESSAGE_NOT_YET_IMPLEMENTED = "WARNING: Needed functionality not yet implemented for current platform!"
+from . import ACTION_ACTIVATE, ACTION_INSTALL, ACTION_REMOVE
 
 
 class Platform:
@@ -15,17 +14,21 @@ class Platform:
 
     data = None
 
+    platform_name = None
+
+    action = None
+
     def __init__(self):
         self.data = {}
 
     def activate_platform(self):
-        pass
+        self.action = ACTION_ACTIVATE
 
     def install(self, **kwargs):
-        return MESSAGE_NOT_YET_IMPLEMENTED
+        self.action = ACTION_INSTALL
 
     def remove(self, **kwargs):
-        return MESSAGE_NOT_YET_IMPLEMENTED
+        self.action = ACTION_REMOVE
 
     def validate_params(self, entered_params, expected_params):
         """
@@ -104,7 +107,7 @@ class Platform:
 
         return str(outgoing)
 
-    def get_message_filename(self, userident, appident):
+    def get_progress_filename(self, appident, userident=None):
         """
         Returns a unique filename for progress messages
 
@@ -112,15 +115,17 @@ class Platform:
         :param appident:
         :return:
         """
-        ingoing = str(userident + appident)
-        app_hash = self.get_md5(ingoing=ingoing)
-        message_file = [
-            app_hash,
-            '.txt',
+        progress_file = [
+            self.platform_name,
+            self.action,
+            appident,
         ]
-        message_filename = ''.join(message_file)
+        if userident != None:
+            progress_file.append(userident)
 
-        return message_filename
+        progress_filename = '_'.join(progress_file) + '.log'
+
+        return progress_filename
 
     def check_system_packages(self):
         """
@@ -136,3 +141,28 @@ class Platform:
             pkg = cache[pkg_name]
             if not pkg.is_installed:
                 raise ValueError("Package {pkg_name} not installed".format(pkg_name=pkg.name))
+
+    def install_system_dependencies(self):
+        """
+        Performs installation of system packages that is demanded by platform
+        :return:
+        """
+        if os.getuid() != 0:
+            raise ValueError(
+                "Installing systemdependencies needs root rights." 
+                "Please try 'sudo aptstore-core {platform} {action}' instead".format(
+                    platform=self.platform_name,
+                    action=ACTION_ACTIVATE,
+                )
+            )
+
+        cache = apt.cache.Cache()
+        cache.update()
+        cache.open()
+
+        packages = self.get_platform_dependencies()
+        for pkg_name in packages:
+            pkg = cache[pkg_name]
+            if not pkg.is_installed:
+                pkg.mark_install()
+        cache.commit()
