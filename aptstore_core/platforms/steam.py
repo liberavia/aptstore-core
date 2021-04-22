@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-import hashlib
 import os
-import threading
 import subprocess
 import apt
+from . import ACTION_ADD
+from . import PLATFORM_STEAM
 from .platform import Platform
 
 
@@ -13,11 +13,12 @@ class Steam(Platform):
     """
 
     def __init__(self):
-        super()
+        super().__init__()
         self.data = {
             'paths': {
                 'steam': os.path.expanduser('~') + '/.aptstore/steam/',
                 'progress': os.path.expanduser('~') + '/.aptstore/progress/',
+                'binaries': os.path.expanduser('~') + '/.aptstore/bin/',
             },
             'binaries': {
                 'steamcmd': os.path.expanduser('~') + '/.aptstore/bin/steamcmd.sh',
@@ -26,8 +27,11 @@ class Steam(Platform):
                 'steamcmd': {
                     'source': 'https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz',
                     'target': os.path.expanduser('~') + '/.aptstore/bin/steamcmd.tar.gz',
-                    'targetfile': 'steamcmd.tar.gz',
                     'type': 'tarfile',
+                    'validate': {
+                        'steamcmd': os.path.expanduser('~') + '/.aptstore/bin/steamcmd.sh',
+                        'linux32': os.path.expanduser('~') + '/.aptstore/bin/linux32',
+                    }
                 },
             },
         }
@@ -48,18 +52,30 @@ class Steam(Platform):
 
         login = kwargs.get('login')
         password = kwargs.get('password')
-        appid = kwargs.get('appid')
+        appid = kwargs.get('ident')
+        self.install_steam_app(appid, login, password)
 
-        trigger_download = threading.Thread(
-                target=self.install_steam_app,
-                args=(appid, login, password)
-        )
-        trigger_download.daemon = True
-        trigger_download.start()
+    def remove(self, **kwargs):
+        """
+        Validate params and remove app with given id
+        :param kwargs:
+        :return:
+        """
+        try:
+            self.platform_initialized()
+            expected_params = self.get_install_params()
+            self.validate_params(kwargs.keys(), expected_params)
+        except ValueError:
+            return
+
+        login = kwargs.get('login')
+        password = kwargs.get('password')
+        appid = kwargs.get('ident')
+        self.remove_steam_app(appid, login, password)
 
     def install_steam_app(self, appid, login, password):
         """
-        Thread that will be started for performing installation of a steam app
+        Performing installation of a steam app
 
         :param appid:
         :param login:
@@ -68,7 +84,7 @@ class Steam(Platform):
         """
         steamcmd = self.data['binaries']['steamcmd']
         progress_path = self.data['paths']['progress']
-        message_output_file = self.get_message_filename(login, appid)
+        message_output_file = self.get_message_filename(userident=login, appident=appid)
         message_file_path = os.path.join(progress_path, message_output_file)
 
         command_elements = [
@@ -87,6 +103,48 @@ class Steam(Platform):
 
         start_command = ' '.join(command_elements)
         subprocess.Popen(start_command, shell=True, close_fds=True)
+        print(
+            "Installing app via {platform}. Follow progress at {logfile}".
+                format(
+                platform=PLATFORM_STEAM,
+                logfile=message_file_path)
+        )
+
+    def remove_steam_app(self, appid, login, password):
+        """
+        Performing removal of a steam app
+
+        :param appid:
+        :param login:
+        :param password:
+        :return:
+        """
+        steamcmd = self.data['binaries']['steamcmd']
+        progress_path = self.data['paths']['progress']
+        message_output_file = self.get_message_filename(userident=login, appident=appid)
+        message_file_path = os.path.join(progress_path, message_output_file)
+
+        command_elements = [
+            'unbuffer',
+            steamcmd,
+            '+login',
+            login,
+            password,
+            '+app_uninstall -complete',
+            appid,
+            '+quit',
+            '>>',
+            message_file_path
+        ]
+
+        remove_command = ' '.join(command_elements)
+        subprocess.Popen(remove_command, shell=True, close_fds=True)
+        print(
+            "Removing app via {platform}. Follow progress at {logfile}".
+                format(
+                platform=PLATFORM_STEAM,
+                logfile=message_file_path)
+        )
 
     def get_install_params(self):
         """
@@ -94,9 +152,11 @@ class Steam(Platform):
         :return: list
         """
         params = [
+            'platform',
+            'action',
+            'ident',
             'login',
             'password',
-            'appid',
         ]
 
         return params
@@ -112,9 +172,6 @@ class Steam(Platform):
         ]
 
         return params
-
-    def remove(self):
-        pass
 
     def initialize_platform(self):
         self.create_paths()
@@ -135,25 +192,9 @@ class Steam(Platform):
         try:
             self.check_system_packages()
         except ValueError:
-            raise ValueError
+            raise ValueError("Not all packages available")
 
         return True
-
-    def check_system_packages(self):
-        """
-        Checks if all needed system packages are installed
-        @todo currently bound to debian only but should work independent
-        :return:
-        """
-        cache = apt.cache.Cache()
-        cache.update()
-        cache.open()
-
-        packages_to_check = self.get_platform_dependencies()
-        for pkg_name in packages_to_check:
-            pkg = cache[pkg_name]
-            if not pkg.is_installed:
-                raise ValueError("Package {pkg_name} not installed".format(pkg.name))
 
     def activate_platform(self):
         """
@@ -164,7 +205,7 @@ class Steam(Platform):
         if os.getuid() != 0:
             raise ValueError(
                 "Activating a platform needs root rights." 
-                "Please use 'sudo aptstore activate steam' instead"
+                "Please use 'sudo aptstore steam {action}' instead".format(action=ACTION_ADD)
             )
 
         cache = apt.cache.Cache()
@@ -177,32 +218,3 @@ class Steam(Platform):
             if not pkg.is_installed:
                 pkg.mark_install()
         cache.commit()
-
-    def get_message_filename(self, user, gameid):
-        """
-        Returns a unique filename for progress messages
-
-        :param user:
-        :param gameid:
-        :return:
-        """
-        game_hash = self.get_md5(user + gameid)
-        message_file = [
-            game_hash,
-            '.txt',
-        ]
-        message_filename = ''.join(message_file)
-
-        return message_filename
-
-    def get_md5(self, ingoing):
-        """
-        Returns an md5 hash of ingoing string
-        :param ingoing:
-        :return:
-        """
-        m = hashlib.md5()
-        m.update(ingoing)
-        outgoing = m.hexdigest()
-
-        return str(outgoing)

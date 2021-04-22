@@ -9,7 +9,7 @@ with open('LICENSE') as f:
     license = f.read()
 
 setup(
-    name='aptstore-core',
+    name='aptstore_core',
     version='0.1.0',
     description='Package to perform installing/removing software from different sources',
     long_description=readme,
