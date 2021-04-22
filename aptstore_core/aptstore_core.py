@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from . import platforms
 from .platforms.steam import Steam
+from .platforms.proton import Proton
 import sys
 
 
@@ -20,6 +21,11 @@ class AptStoreCore:
         self.password = ""
 
     def set_platform(self, platform):
+        """
+        Validate and set platform that action will be performed on
+        :param platform:
+        :return:
+        """
         try:
             self.validate_platform(platform)
             self.platform_name = platform
@@ -28,6 +34,9 @@ class AptStoreCore:
 
         if platform == platforms.PLATFORM_STEAM:
             self.platform = Steam()
+
+        if platform == platforms.PLATFORM_PROTON:
+            self.platform = Proton()
 
     def set_action(self, action):
         try:

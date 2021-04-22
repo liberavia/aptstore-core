@@ -117,13 +117,13 @@ class Platform:
         """
         progress_file = [
             self.platform_name,
-            self.action,
             appident,
         ]
         if userident != None:
             progress_file.append(userident)
 
-        progress_filename = '_'.join(progress_file) + '.log'
+        progress_filename = '_'.join(progress_file)
+        progress_filename += '.log'
 
         return progress_filename
 

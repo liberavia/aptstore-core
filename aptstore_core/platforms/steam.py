@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
 import subprocess
-import apt
-from . import ACTION_ACTIVATE
 from . import PLATFORM_STEAM
 from .platform import Platform
 
@@ -44,7 +42,7 @@ class Steam(Platform):
         :param kwargs:
         :return:
         """
-        super(Steam, self).remove(kwargs)
+        super(Steam, self).install(**kwargs)
         try:
             self.platform_initialized()
             expected_params = self.get_install_params()
@@ -55,7 +53,10 @@ class Steam(Platform):
         login = kwargs.get('login')
         password = kwargs.get('password')
         appid = kwargs.get('ident')
-        self.install_steam_app(appid, login, password)
+        try:
+            self.install_steam_app(appid, login, password)
+        except FileExistsError as err:
+            print(err)
 
     def remove(self, **kwargs):
         """
@@ -63,7 +64,7 @@ class Steam(Platform):
         :param kwargs:
         :return:
         """
-        super(Steam, self).remove(kwargs)
+        super(Steam, self).remove(**kwargs)
         try:
             self.platform_initialized()
             expected_params = self.get_install_params()
@@ -74,7 +75,10 @@ class Steam(Platform):
         login = kwargs.get('login')
         password = kwargs.get('password')
         appid = kwargs.get('ident')
-        self.remove_steam_app(appid, login, password)
+        try:
+            self.remove_steam_app(appid, login, password)
+        except FileExistsError as err:
+            print(err)
 
     def install_steam_app(self, appid, login, password):
         """
@@ -89,6 +93,9 @@ class Steam(Platform):
         progress_path = self.data['paths']['progress']
         progress_file = self.get_progress_filename(userident=login, appident=appid)
         progress_file_path = os.path.join(progress_path, progress_file)
+
+        if os.path.isfile(progress_file_path):
+            raise FileExistsError("Process already running. Abort.")
 
         command_elements = [
             'unbuffer',
@@ -105,13 +112,16 @@ class Steam(Platform):
         ]
 
         start_command = ' '.join(command_elements)
-        subprocess.Popen(start_command, shell=True, close_fds=True)
+        process= subprocess.Popen(start_command, shell=True, close_fds=True)
         print(
             "Installing app via {platform}. Follow progress at {logfile}".
                 format(
                 platform=PLATFORM_STEAM,
                 logfile=progress_file_path)
         )
+        process.communicate()
+        print("Finished")
+        os.remove(progress_file_path)
 
     def remove_steam_app(self, appid, login, password):
         """
@@ -127,6 +137,9 @@ class Steam(Platform):
         progress_file = self.get_progress_filename(userident=login, appident=appid)
         progress_file_path = os.path.join(progress_path, progress_file)
 
+        if os.path.isfile(progress_file_path):
+            raise FileExistsError("Process already running. Abort.")
+
         command_elements = [
             'unbuffer',
             steamcmd,
@@ -141,13 +154,16 @@ class Steam(Platform):
         ]
 
         remove_command = ' '.join(command_elements)
-        subprocess.Popen(remove_command, shell=True, close_fds=True)
+        process = subprocess.Popen(remove_command, shell=True, close_fds=True)
         print(
             "Removing app via {platform}. Follow progress at {logfile}".
                 format(
                 platform=PLATFORM_STEAM,
                 logfile=progress_file_path)
         )
+        process.communicate()
+        print("Finished")
+        os.remove(progress_file_path)
 
     def get_install_params(self):
         """
