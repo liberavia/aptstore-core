@@ -20,7 +20,7 @@ available_actions = ', '.join(
     f'"{a}"' for a in available_actions_list)
 
 parser = argparse.ArgumentParser(
-    description='Install/Remove programs from different sources.'
+    description='Install/Remove apps from different sources.'
 )
 
 parser.add_argument(
