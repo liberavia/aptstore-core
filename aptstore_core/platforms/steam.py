@@ -52,9 +52,8 @@ class Steam(Platform):
 
         login = kwargs.get('login')
         password = kwargs.get('password')
-        appid = kwargs.get('ident')
         try:
-            self.install_steam_app(appid, login, password)
+            self.install_steam_app(login, password)
         except FileExistsError as err:
             print(err)
 
@@ -65,22 +64,15 @@ class Steam(Platform):
         :return:
         """
         super(Steam, self).remove(**kwargs)
-        try:
-            self.platform_initialized()
-            expected_params = self.get_install_params()
-            self.validate_params(kwargs.keys(), expected_params)
-        except ValueError:
-            return
 
         login = kwargs.get('login')
         password = kwargs.get('password')
-        appid = kwargs.get('ident')
         try:
-            self.remove_steam_app(appid, login, password)
+            self.remove_steam_app(login, password)
         except FileExistsError as err:
             print(err)
 
-    def install_steam_app(self, appid, login, password):
+    def install_steam_app(self, login, password):
         """
         Performing installation of a steam app
 
@@ -91,7 +83,7 @@ class Steam(Platform):
         """
         steamcmd = self.data['binaries']['steamcmd']
         progress_path = self.data['paths']['progress']
-        progress_file = self.get_progress_filename(userident=login, appident=appid)
+        progress_file = self.get_progress_filename(userident=login, appident=self.ident)
         progress_file_path = os.path.join(progress_path, progress_file)
 
         if os.path.isfile(progress_file_path):
@@ -123,7 +115,7 @@ class Steam(Platform):
         print("Finished")
         os.remove(progress_file_path)
 
-    def remove_steam_app(self, appid, login, password):
+    def remove_steam_app(self, login, password):
         """
         Performing removal of a steam app
 
@@ -134,7 +126,7 @@ class Steam(Platform):
         """
         steamcmd = self.data['binaries']['steamcmd']
         progress_path = self.data['paths']['progress']
-        progress_file = self.get_progress_filename(userident=login, appident=appid)
+        progress_file = self.get_progress_filename(userident=login, appident=self.ident)
         progress_file_path = os.path.join(progress_path, progress_file)
 
         if os.path.isfile(progress_file_path):
@@ -147,7 +139,7 @@ class Steam(Platform):
             login,
             password,
             '+app_uninstall -complete',
-            appid,
+            self.ident,
             '+quit',
             '>>',
             progress_file_path
@@ -156,8 +148,7 @@ class Steam(Platform):
         remove_command = ' '.join(command_elements)
         process = subprocess.Popen(remove_command, shell=True, close_fds=True)
         print(
-            "Removing app via {platform}. Follow progress at {logfile}".
-                format(
+            "Removing app via {platform}. Follow progress at {logfile}".format(
                 platform=PLATFORM_STEAM,
                 logfile=progress_file_path)
         )
@@ -193,6 +184,11 @@ class Steam(Platform):
         return params
 
     def initialize_platform(self):
+        """
+        Non-root steps needed for platform initialization
+        :return:
+        """
+        super(Steam, self).initialize_platform()
         self.create_paths()
         self.perform_downloads()
 
@@ -212,8 +208,6 @@ class Steam(Platform):
             self.check_system_packages()
         except ValueError:
             raise ValueError("Not all packages available")
-
-        return True
 
     def activate_platform(self):
         """

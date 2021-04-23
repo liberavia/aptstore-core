@@ -41,6 +41,14 @@ class Platform:
             print(err)
             sys.exit("Wrong permissions")
         print("Permissions valid")
+        try:
+            self.platform_initialized()
+            expected_params = self.get_install_params()
+            self.validate_params(kwargs.keys(), expected_params)
+        except ValueError as err:
+            print(err)
+            sys.exit("Initialization problems")
+        print("Platform initialized")
 
     def remove(self, **kwargs):
         self.action = ACTION_REMOVE
@@ -51,6 +59,14 @@ class Platform:
             print(err)
             sys.exit("Wrong permissions")
         print("Permissions valid")
+        try:
+            self.platform_initialized()
+            expected_params = self.get_install_params()
+            self.validate_params(kwargs.keys(), expected_params)
+        except ValueError as err:
+            print(err)
+            sys.exit("Initialization problems")
+        print("Platform initialized")
 
     def validate_params(self, entered_params, expected_params):
         """
@@ -171,7 +187,7 @@ class Platform:
         """
         if os.getuid() != 0:
             raise ValueError(
-                "Installing systemdependencies needs root rights." 
+                "Installing systemdependencies needs root rights. " 
                 "Please try 'sudo aptstore-core {platform} {action}' instead".format(
                     platform=self.platform_name,
                     action=ACTION_ACTIVATE,
@@ -190,9 +206,10 @@ class Platform:
         cache.commit()
 
     def check_user_permission(self):
+        print("Check user permissions...")
         if os.getuid() != 0 and self.admin_needed:
             raise PermissionError(
-                "Action needs administrative permission." 
+                "Action needs administrative permission.\n" 
                 "Please try 'sudo aptstore-core {platform} {action} {ident}' instead".format(
                     platform=self.platform_name,
                     action=self.action,
@@ -201,11 +218,52 @@ class Platform:
             )
         if os.getuid() == 0 and not self.admin_needed:
             raise PermissionError(
-                "Root rights are not allowed for action!" 
+                "Root rights are not allowed for action!\n" 
                 "Please try 'aptstore-core {platform} {action} {ident}' instead".format(
                     platform=self.platform_name,
                     action=self.action,
                     ident=self.ident
                 )
             )
+
+    def platform_initialized(self):
+        """
+        Check if all needed elements for platform are available
+        :return:
+        """
+        pass
+
+    def initialize_platform(self):
+        """
+        Non-root steps needed for platform initialization
+        :return:
+        """
+        try:
+            self.check_user_permission()
+        except PermissionError as err:
+            print(err)
+            sys.exit("Wrong permissions")
+
+    def get_install_params(self):
+        """
+        Returns list of expected params for a proper installation
+        :return: list
+        """
+        params = [
+            'platform',
+            'action',
+            'ident',
+        ]
+
+        return params
+
+    def get_platform_dependencies(self):
+        """
+        Returns list needed debian packages that need to be installed
+        :return: list
+        """
+        params = []
+
+        return params
+
 

@@ -2,6 +2,7 @@
 from . import platforms
 from .platforms.steam import Steam
 from .platforms.proton import Proton
+from .platforms.debian import Debian
 import sys
 
 
@@ -14,9 +15,9 @@ class AptStoreCore:
     password = None
 
     def __init__(self, platform, action, ident):
-        self.set_platform(platform)
         self.set_action(action)
         self.set_ident(ident)
+        self.set_platform(platform)
         self.login = ""
         self.password = ""
 
@@ -38,6 +39,9 @@ class AptStoreCore:
         if platform == platforms.PLATFORM_PROTON:
             self.platform = Proton()
 
+        if platform == platforms.PLATFORM_DEBIAN:
+            self.platform = Debian()
+
     def set_action(self, action):
         try:
             self.validate_action(action)
@@ -52,6 +56,12 @@ class AptStoreCore:
         self.password = password
 
     def set_ident(self, ident):
+        """
+        Set ident part related to platform and action
+        @todo: Validate ident to be valid and save against abuse!
+        :param ident:
+        :return:
+        """
         self.ident = ident
 
     def validate_platform(self, platform):
