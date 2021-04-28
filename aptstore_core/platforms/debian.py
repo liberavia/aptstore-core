@@ -16,8 +16,8 @@ class Debian(Platform):
     progress_acquire = None
     progress_install = None
 
-    def __init__(self):
-        super(Debian, self).__init__()
+    def __init__(self, action=None):
+        super(Debian, self).__init__(action)
         self.platform_name = PLATFORM_DEBIAN
         self.admin_needed = True
         self.data = {

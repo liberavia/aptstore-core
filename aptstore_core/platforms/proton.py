@@ -11,8 +11,8 @@ class Proton(Steam):
     Steam platform via proton
     """
 
-    def __init__(self):
-        super(Proton, self).__init__()
+    def __init__(self, action=None):
+        super(Proton, self).__init__(action)
         self.platform_name = PLATFORM_PROTON
 
     def install_steam_app(self, appid, login, password):

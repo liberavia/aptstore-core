@@ -11,8 +11,8 @@ class Steam(Platform):
     Steam platform
     """
 
-    def __init__(self):
-        super(Steam, self).__init__()
+    def __init__(self, action=None):
+        super(Steam, self).__init__(action)
         self.platform_name = PLATFORM_STEAM
         self.data = {
             'paths': {
