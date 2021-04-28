@@ -53,8 +53,11 @@ password = args.secret
 
 
 from aptstore_core.aptstore_core import AptStoreCore
-
-aptstore = AptStoreCore(platform, action, ident)
+print("Platform: " + platform)
+print("Action: " + action)
+aptstore = AptStoreCore(platform, action)
+if ident:
+    aptstore.set_ident(ident)
 if login:
     aptstore.set_login(login)
 if password:

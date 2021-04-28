@@ -24,8 +24,9 @@ class Platform:
 
     admin_needed = None
 
-    def __init__(self):
+    def __init__(self, action=None):
         # admin_needed defaulted to False
+        self.action = action
         self.admin_needed = False
         self.data = {}
 

@@ -14,10 +14,9 @@ class AptStoreCore:
     login = None
     password = None
 
-    def __init__(self, platform, action, ident=None):
-        self.set_platform(platform)
+    def __init__(self, platform, action):
         self.set_action(action)
-        self.set_ident(ident)
+        self.set_platform(platform)
         self.login = ""
         self.password = ""
 
@@ -34,13 +33,13 @@ class AptStoreCore:
             sys.exit("Abort. Unknown platform")
 
         if platform == platforms.PLATFORM_STEAM:
-            self.platform = Steam()
+            self.platform = Steam(self.action)
 
         if platform == platforms.PLATFORM_PROTON:
-            self.platform = Proton()
+            self.platform = Proton(self.action)
 
         if platform == platforms.PLATFORM_DEBIAN:
-            self.platform = Debian()
+            self.platform = Debian(self.action)
 
     def set_action(self, action):
         try:
