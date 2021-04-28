@@ -3,6 +3,7 @@ import os
 import subprocess
 from . import PLATFORM_STEAM
 from .platform import Platform
+from . import ACTION_ACTIVATE, ACTION_INSTALL, ACTION_REMOVE
 
 
 class Steam(Platform):
@@ -215,3 +216,13 @@ class Steam(Platform):
         :return:
         """
         self.install_system_dependencies()
+
+    def check_user_permission(self):
+        """
+        Overwrite of default permission set
+        Activating needs admin rights
+        :return:
+        """
+        if self.action == ACTION_ACTIVATE:
+            self.admin_needed = True
+        super(Steam, self).check_user_permission()
