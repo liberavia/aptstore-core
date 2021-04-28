@@ -14,10 +14,10 @@ class AptStoreCore:
     login = None
     password = None
 
-    def __init__(self, platform, action, ident):
+    def __init__(self, platform, action, ident=None):
+        self.set_platform(platform)
         self.set_action(action)
         self.set_ident(ident)
-        self.set_platform(platform)
         self.login = ""
         self.password = ""
 
@@ -110,3 +110,5 @@ class AptStoreCore:
                     action=self.action,
                     ident=self.ident
                 )
+        if self.action == platforms.ACTION_ACTIVATE:
+                self.platform.activate_platform()

@@ -32,7 +32,7 @@ parser.add_argument(
     help='Allowed values are ' + available_actions + '.'
 )
 parser.add_argument(
-    'ident',
+    '-i', '--ident',
     help='Identifier for an related app-identification depending on platform.'
 )
 parser.add_argument(
