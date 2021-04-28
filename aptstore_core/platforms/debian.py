@@ -3,7 +3,7 @@ import os
 import sys
 import apt_pkg
 import apt
-from apt.progress import base
+from apt.progress import base, text
 from . import PLATFORM_DEBIAN
 from .platform import Platform
 
@@ -26,8 +26,6 @@ class Debian(Platform):
                 'progress': os.path.expanduser('~') + '/.aptstore/progress/',
             },
         }
-        self.progress_acquire = base.AcquireProgress()
-        self.progress_install = base.InstallProgress()
 
     def install(self, **kwargs):
         """
@@ -83,7 +81,7 @@ class Debian(Platform):
         pkg.mark_install()
         print("Install package {p}".format(p=pkg.name))
         pkg.commit(self.progress_acquire, self.progress_install)
-        #self.follow_progress(pkg)
+        # self.follow_progress(pkg)
 
     def remove_debian_app(self):
         if not self.package_exists():
@@ -101,22 +99,15 @@ class Debian(Platform):
         pkg.mark_delete()
         print("Install package {p}".format(p=pkg.name))
         pkg.commit(self.progress_acquire, self.progress_install)
-        #self.follow_progress(pkg)
+        # self.follow_progress(pkg)
 
     def follow_progress(self, pkg):
-            print("Download " + self.ident + "...")
-            acquire = apt_pkg.Acquire(self.progress_acquire)
-            while not self.progress_acquire.done():
-                current_bytes = self.progress_acquire.current_bytes
-                total_bytes = self.progress_acquire.total_bytes
-                percent_downloaded = int(current_bytes * 100 /total_bytes)
-                print(current_bytes)
-                print(total_bytes)
-                print(percent_downloaded)
+            while not self.progress_acquire.current_bytes < self.progress_acquire.total_bytes:
+                pass
 
-            print("Install " + self.ident + "...")
+            print(self.action + " " + self.ident + "...")
             while not self.progress_install.finish_update():
-                percent_installed = int(self.progress_install.percent)
+                percent_installed = self.progress_install.percent
                 print(percent_installed)
 
     def initialize_platform(self):
@@ -125,6 +116,13 @@ class Debian(Platform):
         :return:
         """
         super(Debian, self).initialize_platform()
+        progress_path = self.data['paths']['progress']
+        progress_file = self.get_progress_filename(appident=self.ident)
+        progress_file_path = os.path.join(progress_path, progress_file)
+        print(progress_file_path)
+        fp = open(progress_file_path, 'w')
+        self.progress_acquire = text.AcquireProgress(fp)
+        self.progress_install = base.InstallProgress()
         self.update_cache()
 
     def update_cache(self):

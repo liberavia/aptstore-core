@@ -96,7 +96,7 @@ class Steam(Platform):
             login,
             password,
             '+app_update',
-            appid,
+            self.ident,
             'validate',
             '+quit',
             '>>',
