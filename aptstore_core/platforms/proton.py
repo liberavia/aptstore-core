@@ -50,7 +50,7 @@ class Proton(Steam):
         start_command = ' '.join(command_elements)
         process = subprocess.Popen(start_command, shell=True, close_fds=True)
         print(
-            "Removing app via {platform}. Follow progress at {logfile}".
+            "Install app via {platform}. Follow progress at {logfile}".
                 format(
                 platform=PLATFORM_PROTON,
                 logfile=progress_file_path)
@@ -92,7 +92,7 @@ class Proton(Steam):
         start_command = ' '.join(command_elements)
         process = subprocess.Popen(start_command, shell=True, close_fds=True)
         print(
-            "Removing app via {platform}. Follow progress at {logfile}".
+            "Remove app via {platform}. Follow progress at {logfile}".
                 format(
                 platform=PLATFORM_PROTON,
                 logfile=progress_file_path)

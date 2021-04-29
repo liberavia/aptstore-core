@@ -122,7 +122,7 @@ class Steam(Platform):
         start_command = ' '.join(command_elements)
         process= subprocess.Popen(start_command, shell=True, close_fds=True)
         print(
-            "Installing app via {platform}. Follow progress at {logfile}".
+            "Install app via {platform}. Follow progress at {logfile}".
                 format(
                 platform=PLATFORM_STEAM,
                 logfile=progress_file_path)
@@ -164,7 +164,7 @@ class Steam(Platform):
         remove_command = ' '.join(command_elements)
         process = subprocess.Popen(remove_command, shell=True, close_fds=True)
         print(
-            "Removing app via {platform}. Follow progress at {logfile}".format(
+            "Remove app via {platform}. Follow progress at {logfile}".format(
                 platform=PLATFORM_STEAM,
                 logfile=progress_file_path)
         )
@@ -325,10 +325,11 @@ class Steam(Platform):
 
     def check_steam_login(self, login, password):
         """
-        triggers a login via steamcmd for determing if there is some need for
+        Triggers a login via steamcmd for determine if there is some need for
         two factor user validation
         :return:
         """
+        print("Validate login to steam...")
         steamcmd = self.data['binaries']['steamcmd']
 
         command_elements = [
@@ -376,6 +377,7 @@ class Steam(Platform):
                 child.expect('Steam>')
                 child.sendline('quit')
             elif expected_match == 2:
+                print("Login successfully")
                 child.sendline('quit')
         except EOF:
             pass
