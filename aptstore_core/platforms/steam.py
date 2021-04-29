@@ -1,11 +1,15 @@
 # -*- coding: utf-8 -*-
-import apt
 import os
 import subprocess
+
+import apt
 import requests
+import pexpect
+from pexpect import EOF, TIMEOUT
+
+from . import ACTION_ACTIVATE
 from . import PLATFORM_STEAM
 from .platform import Platform
-from . import ACTION_ACTIVATE, ACTION_INSTALL, ACTION_REMOVE
 
 
 class Steam(Platform):
@@ -63,6 +67,7 @@ class Steam(Platform):
         login = kwargs.get('login')
         password = kwargs.get('password')
         try:
+            self.check_steam_login(login, password)
             self.install_steam_app(login, password)
         except FileExistsError as err:
             print(err)
@@ -78,6 +83,7 @@ class Steam(Platform):
         login = kwargs.get('login')
         password = kwargs.get('password')
         try:
+            self.check_steam_login(login, password)
             self.remove_steam_app(login, password)
         except FileExistsError as err:
             print(err)
@@ -316,3 +322,64 @@ class Steam(Platform):
 
         command = ' '.join(command_elements)
         process = subprocess.Popen(command, shell=True, close_fds=True)
+
+    def check_steam_login(self, login, password):
+        """
+        triggers a login via steamcmd for determing if there is some need for
+        two factor user validation
+        :return:
+        """
+        steamcmd = self.data['binaries']['steamcmd']
+
+        command_elements = [
+            steamcmd,
+            '+login',
+            login,
+            password,
+        ]
+
+        shell_command = ' '.join(command_elements)
+
+        # define expects
+        expect_steam_guard = "Steam Guard code"
+        expect_steam_captcha = "Please take a look at the captcha image"
+
+        # spawn subshell
+        child = pexpect.spawn(shell_command)
+        expected_match = child.expect(
+            [
+                expect_steam_guard,
+                expect_steam_captcha,
+                'Steam>'
+            ]
+        )
+
+        try:
+            if expected_match == 0:
+                prompt = child.after
+                print(
+                    "Your account is protected with Steam Guard.\n"
+                    "A code has been sent to your E-Mail address.\n"
+                )
+                code_entered = input('Enter code: ')
+                child.sendline(code_entered)
+                child.expect('Steam>')
+                child.sendline('quit')
+            elif expected_match == 1:
+                prompt = child.after
+                print(
+                    "Your account is protected with Steam Guard.\n"
+                    "Please enter the code of captcha from:\n" + prompt
+                )
+                code_entered = input('Enter code: ')
+                child.sendline(code_entered)
+                child.expect('Steam>')
+                child.sendline('quit')
+            elif expected_match == 2:
+                child.sendline('quit')
+        except EOF:
+            pass
+        except TIMEOUT:
+            pass
+
+        child.terminate()
