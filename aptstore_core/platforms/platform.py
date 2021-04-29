@@ -293,7 +293,6 @@ class Platform:
             two_factor_entry_field = tk.Entry(form)
             two_factor_entry_field.grid(row=1, column=1)
             two_factor_entry_field.bind("<Return>", self.set_two_factor_code)
-            two_factor_entry_field.pack()
             button_quit = tk.Button(
                 form,
                 text='Quit',
