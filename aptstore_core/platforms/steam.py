@@ -188,7 +188,7 @@ class Steam(Platform):
         """
         params = [
             'expect',
-            'steam:i386',
+            'steam-launcher',
         ]
 
         return params
