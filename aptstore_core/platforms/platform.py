@@ -269,7 +269,7 @@ class Platform:
 
         return params
 
-    def get_input(self, prompt, message):
+    def get_two_factor_input(self, prompt, message):
         """
         Gets an input from user. Depending if gui flag is set
         :return:
@@ -285,7 +285,8 @@ class Platform:
             tkinter.Button(form, text='OK', command=self.set_two_factor_code).grid(row=3, column=1, sticky=W, pady=4)
             tkinter.mainloop()
         else:
-            self.two_factor_code = input('Enter code: ')
+            print(message)
+            self.two_factor_code = input(prompt + ': ')
 
     def set_two_factor_code(self):
         self.two_factor_code = entry_field.get()

@@ -364,7 +364,7 @@ class Steam(Platform):
                     "A code has been sent to your E-Mail address.\n"
                 )
                 print(message)
-                code_entered = self.get_input('Enter code: ', message)
+                code_entered = self.get_two_factor_input('Enter code: ', message)
                 child.sendline(code_entered)
                 child.expect('Steam>')
                 child.sendline('quit')
