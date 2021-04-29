@@ -43,6 +43,11 @@ parser.add_argument(
     '-s', '--secret',
     help='Optional password (depends on platform)'
 )
+parser.add_argument(
+    '-g', '--gui',
+    help='Optional flag that indicates GUI-Mode'
+)
+
 args = parser.parse_args()
 
 platform = args.platform
@@ -50,6 +55,7 @@ action = args.action
 ident = args.ident
 login = args.login
 password = args.secret
+gui = args.gui
 
 
 from aptstore_core.aptstore_core import AptStoreCore

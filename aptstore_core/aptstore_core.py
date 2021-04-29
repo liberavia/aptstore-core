@@ -13,6 +13,7 @@ class AptStoreCore:
     ident = None
     login = None
     password = None
+    gui_mode = False
 
     def __init__(self, platform, action):
         self.set_action(action)
@@ -63,6 +64,9 @@ class AptStoreCore:
         """
         self.ident = ident
 
+    def set_gui_mode(self):
+        self.gui_mode = True
+
     def validate_platform(self, platform):
         available_platforms = platforms.get_available_platforms()
 
@@ -86,13 +90,15 @@ class AptStoreCore:
                     action=self.action,
                     ident=self.ident,
                     login=self.login,
-                    password=self.password
+                    password=self.password,
+                    gui_mode=self.gui_mode,
                 )
             else:
                 self.platform.install(
                     platform=self.platform_name,
                     action=self.action,
-                    ident=self.ident
+                    ident=self.ident,
+                    gui_mode=self.gui_mode,
                 )
         if self.action == platforms.ACTION_REMOVE:
             if self.login:
@@ -101,13 +107,15 @@ class AptStoreCore:
                     action=self.action,
                     ident=self.ident,
                     login=self.login,
-                    password=self.password
+                    password=self.password,
+                    gui_mode=self.gui_mode,
                 )
             else:
                 self.platform.remove(
                     platform=self.platform_name,
                     action=self.action,
-                    ident=self.ident
+                    ident=self.ident,
+                    gui_mode=self.gui_mode,
                 )
         if self.action == platforms.ACTION_ACTIVATE:
                 self.platform.activate_platform()

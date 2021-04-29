@@ -6,6 +6,7 @@ import apt
 import hashlib
 import requests
 import tarfile
+import tkinter
 from . import ACTION_ACTIVATE, ACTION_INSTALL, ACTION_REMOVE
 
 
@@ -15,19 +16,18 @@ class Platform:
     """
 
     data = None
-
     platform_name = None
-
     action = None
-
     ident = None
-
     admin_needed = None
+    gui_mode = None
+    two_factor_code = None
 
     def __init__(self, action=None):
         # admin_needed defaulted to False
         self.action = action
         self.admin_needed = False
+        self.gui_mode = False
         self.data = {}
 
     def activate_platform(self):
@@ -36,6 +36,7 @@ class Platform:
     def install(self, **kwargs):
         self.action = ACTION_INSTALL
         self.ident = kwargs.get('ident')
+        self.gui_mode = kwargs.get('gui_mode')
         try:
             self.check_user_permission()
         except PermissionError as err:
@@ -54,6 +55,7 @@ class Platform:
     def remove(self, **kwargs):
         self.action = ACTION_REMOVE
         self.ident = kwargs.get('ident')
+        self.gui_mode = kwargs.get('gui_mode')
         try:
             self.check_user_permission()
         except PermissionError as err:
@@ -267,4 +269,23 @@ class Platform:
 
         return params
 
+    def get_input(self, prompt, message):
+        """
+        Gets an input from user. Depending if gui flag is set
+        :return:
+        """
+        if self.gui_mode:
+            pass
+            form = tkinter.Tk()
+            tkinter.Label(form, text=message).grid(row=0, columnspan=2)
+            tkinter.Label(form, text=prompt).grid(row=1, column=0)
+            entry_field = tkinter.Entry(form)
+            entry_field.grid(row=1, column=1)
+            tkinter.Button(form, text='Quit', command=form.quit).grid(row=3, column=0, sticky=W, pady=4)
+            tkinter.Button(form, text='OK', command=self.set_two_factor_code).grid(row=3, column=1, sticky=W, pady=4)
+            tkinter.mainloop()
+        else:
+            self.two_factor_code = input('Enter code: ')
 
+    def set_two_factor_code(self):
+        self.two_factor_code = entry_field.get()

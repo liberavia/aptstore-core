@@ -5,6 +5,7 @@ import subprocess
 import apt
 import requests
 import pexpect
+import tkinter
 from pexpect import EOF, TIMEOUT
 
 from . import ACTION_ACTIVATE
@@ -358,11 +359,12 @@ class Steam(Platform):
         try:
             if expected_match == 0:
                 prompt = child.after
-                print(
+                message = (
                     "Your account is protected with Steam Guard.\n"
                     "A code has been sent to your E-Mail address.\n"
                 )
-                code_entered = input('Enter code: ')
+                print(message)
+                code_entered = self.get_input('Enter code: ', message)
                 child.sendline(code_entered)
                 child.expect('Steam>')
                 child.sendline('quit')
