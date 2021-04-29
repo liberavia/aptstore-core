@@ -21,11 +21,11 @@ def get_available_platforms():
     """
     available_platforms = [
         PLATFORM_DEBIAN,
-        PLATFORM_FLATHUB,
-        PLATFORM_SNAPSTORE,
+        #PLATFORM_FLATHUB,
+        #PLATFORM_SNAPSTORE,
         PLATFORM_STEAM,
         PLATFORM_PROTON,
-        PLATFORM_SCRIPT,
+        #PLATFORM_SCRIPT,
     ]
 
     return available_platforms
