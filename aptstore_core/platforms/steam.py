@@ -188,7 +188,13 @@ class Steam(Platform):
         """
         params = [
             'expect',
+            'gdebi'
             'steam-launcher',
+            'libgl1-mesa-dri:i386',
+            'libgl1:i386',
+            'libc6:i386',
+            'xdg-desktop-portal',
+            'xdg-desktop-portal-gtk'
         ]
 
         return params
@@ -256,7 +262,9 @@ class Steam(Platform):
         cache.update()
         cache.open()
 
-        packages = ['expect', 'gdebi']
+        packages = self.get_platform_dependencies()
+        # steam-launcher needs to be downloaded manually
+        packages.remove('steam-launcher')
         for pkg_name in packages:
             pkg = cache[pkg_name]
             if not pkg.is_installed:
