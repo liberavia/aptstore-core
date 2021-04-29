@@ -283,7 +283,8 @@ class Platform:
             tk.Label(form, text=prompt).grid(row=1, column=0)
             entry_field = tk.Entry(form)
             entry_field.grid(row=1, column=1)
-            entry_field.bind("<Return>", self.set_two_factor_code(entry_field))
+            entry_field.bind("<Return>", self.set_two_factor_code)
+            entry_field.pack()
             button_quit = tk.Button(
                 form,
                 text='Quit',
@@ -292,7 +293,7 @@ class Platform:
             button_ok = tk.Button(
                 form,
                 text='OK',
-                command=self.set_two_factor_code(entry_field)
+                command=self.set_two_factor_code
             ).grid(row=3, column=1, pady=4)
             tk.mainloop()
         else:
