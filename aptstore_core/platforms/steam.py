@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
+import apt
 import os
 import subprocess
+import requests
 from . import PLATFORM_STEAM
 from .platform import Platform
 from . import ACTION_ACTIVATE, ACTION_INSTALL, ACTION_REMOVE
@@ -33,6 +35,13 @@ class Steam(Platform):
                         'linux32': os.path.expanduser('~') + '/.aptstore/bin/linux32',
                     }
                 },
+            },
+            'external_packages': {
+                'steamclient': {
+                    'source': 'https://cdn.cloudflare.steamstatic.com/client/installer/steam.deb',
+                    'target': '/tmp/steam.deb',
+                    'type': 'deb'
+                }
             },
         }
         self.initialize_platform()
@@ -216,6 +225,7 @@ class Steam(Platform):
         :return:
         """
         self.install_system_dependencies()
+        self.install_external_packages()
 
     def check_user_permission(self):
         """
@@ -226,3 +236,60 @@ class Steam(Platform):
         if self.action == ACTION_ACTIVATE:
             self.admin_needed = True
         super(Steam, self).check_user_permission()
+
+    def install_system_dependencies(self):
+        """
+        Overwriting due to steam package is not in apt-cache
+        Performs installation of system packages that is demanded by platform
+        :return:
+        """
+        if os.getuid() != 0:
+            raise ValueError(
+                "Installing systemdependencies needs root rights. " 
+                "Please try 'sudo aptstore-core {platform} {action}' instead".format(
+                    platform=self.platform_name,
+                    action=ACTION_ACTIVATE,
+                )
+            )
+
+        cache = apt.cache.Cache()
+        cache.update()
+        cache.open()
+
+        packages = ['expect', 'gdebi']
+        for pkg_name in packages:
+            pkg = cache[pkg_name]
+            if not pkg.is_installed:
+                pkg.mark_install()
+        cache.commit()
+
+    def install_external_packages(self):
+        """
+        Install external debian packages
+        :return:
+        """
+        for key, package_info in self.data['external_packages']:
+            if package_info['type'] != 'deb':
+                continue
+            source = package_info['source']
+            target = package_info['target']
+            self.download_external_package(source, target)
+
+            command_elements = [
+                'gdebi -n',
+                target
+            ]
+
+            install_command = ' '.join(command_elements)
+            process = subprocess.Popen(install_command, shell=True, close_fds=True)
+
+    def download_external_package(self, source, target):
+        """
+        Downloads from source and place package at target
+        :param source:
+        :param target:
+        :return:
+        """
+        r = requests.get(source, allow_redirects=True)
+        open(target, 'wb').write(r.content)
+
