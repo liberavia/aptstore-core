@@ -278,16 +278,18 @@ class Platform:
         if self.gui_mode:
             pass
             form = tkinter.Tk()
+            form.title("Two-Factor-Authentication")
             tkinter.Label(form, text=message).grid(row=0, columnspan=2)
             tkinter.Label(form, text=prompt).grid(row=1, column=0)
             entry_field = tkinter.Entry(form)
             entry_field.grid(row=1, column=1)
-            tkinter.Button(form, text='Quit', command=form.quit).grid(row=3, column=0, sticky=W, pady=4)
-            tkinter.Button(form, text='OK', command=self.set_two_factor_code).grid(row=3, column=1, sticky=W, pady=4)
+            button_quit = tkinter.Button(form, text='Quit', command=form.quit).grid(row=3, column=0, sticky=W, pady=4)
+            button_ok = tkinter.Button(form, text='OK', command=self.set_two_factor_code).grid(row=3, column=1, sticky=W, pady=4)
+            button_ok.bind("<Return>", self.set_two_factor_code)
             tkinter.mainloop()
         else:
             print(message)
             self.two_factor_code = input(prompt + ': ')
 
-    def set_two_factor_code(self):
+    def set_two_factor_code(self, entry_field):
         self.two_factor_code = entry_field.get()
