@@ -230,6 +230,7 @@ class Steam(Platform):
         Perform anything needed
         :return:
         """
+        self.activate_i386()
         self.install_system_dependencies()
         self.install_external_packages()
 
@@ -302,3 +303,16 @@ class Steam(Platform):
         r = requests.get(source, allow_redirects=True)
         open(target, 'wb').write(r.content)
 
+    def activate_i386(self):
+        """
+        Enables 32bit architecture mandatory for steam to work
+        :return:
+        """
+        command_elements = [
+            'dpkg',
+            '--add-architecture',
+            'i386'
+        ]
+
+        command = ' '.join(command_elements)
+        process = subprocess.Popen(command, shell=True, close_fds=True)
