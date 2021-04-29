@@ -288,7 +288,10 @@ class Platform:
 
             form.withdraw()
 
-            complete_message = "{message}\n{prompt}".format(message, prompt)
+            complete_message = "{message}\n{prompt}".format(
+                message=message,
+                prompt=prompt
+            )
 
             self.two_factor_code = simpledialog.askstring(
                 "Steam Guard",
