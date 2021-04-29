@@ -7,6 +7,8 @@ import hashlib
 import requests
 import tarfile
 import tkinter as tk
+from tkinter import simpledialog
+
 from . import ACTION_ACTIVATE, ACTION_INSTALL, ACTION_REMOVE
 
 class Platform:
@@ -277,30 +279,11 @@ class Platform:
 
         if self.gui_mode:
             form = tk.Tk()
-            form.title("Two-Factor-Authentication")
-
-            window_width = form.winfo_reqwidth()
-            window_height = form.winfo_reqheight()
-            position_right = int(form.winfo_screenwidth() / 2 - window_width / 2)
-            position_down = int(form.winfo_screenheight() / 2 - window_height / 2)
-            form.geometry("+{}+{}".format(position_right, position_down))
-
-            tk.Label(form, text=message).grid(row=0, columnspan=2)
-            tk.Label(form, text=prompt).grid(row=1, column=0)
-            two_factor_entry_field = tk.Entry(form)
-            two_factor_entry_field.grid(row=1, column=1)
-            two_factor_entry_field.bind("<Return>", self.set_two_factor_code)
-            button_quit = tk.Button(
-                form,
-                text='Quit',
-                command=form.quit
-            ).grid(row=3, column=0, pady=4)
-            button_ok = tk.Button(
-                form,
-                text='OK',
-                command=self.set_two_factor_code
-            ).grid(row=3, column=1, pady=4)
-            tk.mainloop()
+            form.withdraw()
+            self.two_factor_code = simpledialog.askstring(
+                "Steam Guard - Check your E-Mail",
+                "Please enter your Steam-Guard-Code"
+            )
         else:
             print(message)
             self.two_factor_code = input(prompt + ': ')
