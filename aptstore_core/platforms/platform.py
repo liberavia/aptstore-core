@@ -277,10 +277,17 @@ class Platform:
         :return:
         """
         global two_factor_entry_field
+
         if self.gui_mode:
-            pass
             form = tk.Tk()
             form.title("Two-Factor-Authentication")
+
+            window_width = form.winfo_reqwidth()
+            window_height = form.winfo_reqheight()
+            position_right = int(form.winfo_screenwidth() / 2 - window_width / 2)
+            position_down = int(form.winfo_screenheight() / 2 - window_height / 2)
+            form.geometry("+{}+{}".format(position_right, position_down))
+
             tk.Label(form, text=message).grid(row=0, columnspan=2)
             tk.Label(form, text=prompt).grid(row=1, column=0)
             two_factor_entry_field = tk.Entry(form)
@@ -305,3 +312,4 @@ class Platform:
     def set_two_factor_code(self):
         global two_factor_entry_field
         self.two_factor_code = two_factor_entry_field.get()
+
