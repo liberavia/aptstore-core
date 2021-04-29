@@ -268,11 +268,11 @@ class Steam(Platform):
         Install external debian packages
         :return:
         """
-        for key, package_info in self.data['external_packages']:
-            if package_info['type'] != 'deb':
+        for key in self.data['external_packages']:
+            if self.data[key]['type'] != 'deb':
                 continue
-            source = package_info['source']
-            target = package_info['target']
+            source = self.data[key]['source']
+            target = self.data[key]['target']
             self.download_external_package(source, target)
 
             command_elements = [
