@@ -97,7 +97,7 @@ class Debian(Platform):
             )
 
         pkg.mark_delete()
-        print("Install package {p}".format(p=pkg.name))
+        print("Remove package {p}".format(p=pkg.name))
         pkg.commit(self.progress_acquire, self.progress_install)
         # self.follow_progress(pkg)
 
