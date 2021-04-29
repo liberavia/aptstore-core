@@ -269,10 +269,11 @@ class Steam(Platform):
         :return:
         """
         for key in self.data['external_packages']:
-            if self.data[key]['type'] != 'deb':
+            package_info = self.data['external_packages'][key]
+            if package_info['type'] != 'deb':
                 continue
-            source = self.data[key]['source']
-            target = self.data[key]['target']
+            source = package_info['source']
+            target = package_info['target']
             self.download_external_package(source, target)
 
             command_elements = [
