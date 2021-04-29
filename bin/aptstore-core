@@ -45,7 +45,8 @@ parser.add_argument(
 )
 parser.add_argument(
     '-g', '--gui',
-    help='Optional flag that indicates GUI-Mode'
+    help='Optional flag that indicates GUI-Mode',
+    action="store_true"
 )
 
 args = parser.parse_args()
@@ -68,6 +69,8 @@ if login:
     aptstore.set_login(login)
 if password:
     aptstore.set_password(password)
+if gui:
+    aptstore.set_gui_mode()
 
 # get options
 aptstore.trigger_action()
