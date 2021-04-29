@@ -40,7 +40,7 @@ class Proton(Steam):
             login,
             password,
             '+app_update',
-            appid,
+            self.ident,
             'validate',
             '+quit',
             '>>',
@@ -83,7 +83,7 @@ class Proton(Steam):
             login,
             password,
             '+app_uninstall',
-            appid,
+            self.ident,
             '+quit',
             '>>',
             progress_file_path
