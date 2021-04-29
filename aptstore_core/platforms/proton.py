@@ -15,7 +15,7 @@ class Proton(Steam):
         super(Proton, self).__init__(action)
         self.platform_name = PLATFORM_PROTON
 
-    def install_steam_app(self, appid, login, password):
+    def install_steam_app(self, login, password):
         """
         Performing installation of a steam proton app
 
@@ -26,7 +26,7 @@ class Proton(Steam):
         """
         steamcmd = self.data['binaries']['steamcmd']
         progress_path = self.data['paths']['progress']
-        progress_file = self.get_progress_filename(userident=login, appident=appid)
+        progress_file = self.get_progress_filename(userident=login, appident=self.ident)
         progress_file_path = os.path.join(progress_path, progress_file)
 
         if os.path.isfile(progress_file_path):
@@ -59,7 +59,7 @@ class Proton(Steam):
         print("Finished")
         os.remove(progress_file_path)
 
-    def remove_steam_app(self, appid, login, password):
+    def remove_steam_app(self, login, password):
         """
         Performing removal of a steam proton app
 
@@ -70,7 +70,7 @@ class Proton(Steam):
         """
         steamcmd = self.data['binaries']['steamcmd']
         progress_path = self.data['paths']['progress']
-        progress_file = self.get_progress_filename(userident=login, appident=appid)
+        progress_file = self.get_progress_filename(userident=login, appident=self.ident)
         progress_file_path = os.path.join(progress_path, progress_file)
 
         if os.path.isfile(progress_file_path):
@@ -108,5 +108,5 @@ class Proton(Steam):
         """
         print(
             "Activating proton is done by activating "
-            "steam with sudo aptstore-core steam activate"
+            "steam platform by typing: sudo aptstore-core steam activate"
         )
