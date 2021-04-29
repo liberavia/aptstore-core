@@ -184,6 +184,7 @@ class Steam(Platform):
             'ident',
             'login',
             'password',
+            'gui_mode',
         ]
 
         return params

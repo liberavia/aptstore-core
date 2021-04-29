@@ -256,6 +256,7 @@ class Platform:
             'platform',
             'action',
             'ident',
+            'gui_mode',
         ]
 
         return params
