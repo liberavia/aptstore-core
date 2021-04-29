@@ -279,7 +279,6 @@ class Platform:
 
         if self.gui_mode:
             form = tk.Tk()
-            form.withdraw()
 
             window_width = form.winfo_reqwidth()
             window_height = form.winfo_reqheight()
@@ -287,11 +286,13 @@ class Platform:
             position_down = int(form.winfo_screenheight() / 2 - window_height / 2)
             form.geometry("+{}+{}".format(position_right, position_down))
 
+            form.withdraw()
+
+            complete_message = "{message}\n{prompt}".format(message, prompt)
+
             self.two_factor_code = simpledialog.askstring(
                 "Steam Guard",
-                "You have SteamGuard activated in your account.\n"
-                "You should have received an E-Mail with your security code.\n"
-                "Please enter your Steam-Guard-Code"
+                complete_message
             )
         else:
             print(message)
