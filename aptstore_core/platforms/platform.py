@@ -284,9 +284,17 @@ class Platform:
             entry_field = tk.Entry(form)
             entry_field.grid(row=1, column=1)
             entry_field.bind("<Return>", self.set_two_factor_code(entry_field))
-            button_quit = tk.Button(form, text='Quit', command=form.quit).grid(row=3, column=0, sticky=W, pady=4)
-            button_ok = tk.Button(form, text='OK', command=self.set_two_factor_code(entry_field)).grid(row=3, column=1, sticky=W, pady=4)
-            tkinter.mainloop()
+            button_quit = tk.Button(
+                form,
+                text='Quit',
+                command=form.quit
+            ).grid(row=3, column=0, pady=4)
+            button_ok = tk.Button(
+                form,
+                text='OK',
+                command=self.set_two_factor_code(entry_field)
+            ).grid(row=3, column=1, pady=4)
+            tk.mainloop()
         else:
             print(message)
             self.two_factor_code = input(prompt + ': ')
