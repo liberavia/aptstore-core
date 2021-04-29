@@ -101,4 +101,12 @@ class Proton(Steam):
         print("Finished")
         os.remove(progress_file_path)
 
-
+    def activate_platform(self):
+        """
+        Perform anything needed
+        :return:
+        """
+        print(
+            "Activating proton is done by activating "
+            "steam with sudo aptstore-core steam activate"
+        )
