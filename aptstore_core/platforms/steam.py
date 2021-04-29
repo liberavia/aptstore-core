@@ -188,7 +188,7 @@ class Steam(Platform):
         """
         params = [
             'expect',
-            'gdebi'
+            'gdebi',
             'steam-launcher',
             'libgl1-mesa-dri:i386',
             'libgl1:i386',
