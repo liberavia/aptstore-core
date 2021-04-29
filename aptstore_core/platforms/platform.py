@@ -271,7 +271,7 @@ class Platform:
 
         return params
 
-    def get_two_factor_input(self, prompt, message):
+    def two_factor_input(self, prompt, message):
         """
         Gets an input from user. Depending if gui flag is set
         :return:

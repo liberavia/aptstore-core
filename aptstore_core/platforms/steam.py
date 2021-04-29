@@ -359,28 +359,27 @@ class Steam(Platform):
 
         try:
             if expected_match == 0:
-                prompt = child.after
+                child.after
                 message = (
                     "Your account is protected with Steam Guard.\n"
                     "A code has been sent to your E-Mail address.\n"
                 )
-                print(message)
-                code_entered = self.get_two_factor_input('Enter code: ', message)
-                child.sendline(code_entered)
+                self.two_factor_input('Enter code: ', message)
+                child.sendline(self.two_factor_code)
                 child.expect('Steam>')
                 child.sendline('quit')
             elif expected_match == 1:
                 prompt = child.after
-                print(
+                message = (
                     "Your account is protected with Steam Guard.\n"
                     "Please enter the code of captcha from:\n" + prompt
                 )
-                code_entered = input('Enter code: ')
-                child.sendline(code_entered)
+                self.two_factor_input('Enter code: ', message)
+                child.sendline(self.two_factor_code)
                 child.expect('Steam>')
                 child.sendline('quit')
             elif expected_match == 2:
-                print("Login successfully")
+                print("Steam-Login successful")
                 child.sendline('quit')
         except EOF:
             pass
