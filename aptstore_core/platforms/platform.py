@@ -9,6 +9,7 @@ import tarfile
 import tkinter as tk
 from . import ACTION_ACTIVATE, ACTION_INSTALL, ACTION_REMOVE
 
+two_factor_entry_field = ""
 
 class Platform:
     """
@@ -275,16 +276,17 @@ class Platform:
         Gets an input from user. Depending if gui flag is set
         :return:
         """
+        global two_factor_entry_field
         if self.gui_mode:
             pass
             form = tk.Tk()
             form.title("Two-Factor-Authentication")
             tk.Label(form, text=message).grid(row=0, columnspan=2)
             tk.Label(form, text=prompt).grid(row=1, column=0)
-            entry_field = tk.Entry(form)
-            entry_field.grid(row=1, column=1)
-            entry_field.bind("<Return>", self.set_two_factor_code)
-            entry_field.pack()
+            two_factor_entry_field = tk.Entry(form)
+            two_factor_entry_field.grid(row=1, column=1)
+            two_factor_entry_field.bind("<Return>", self.set_two_factor_code)
+            two_factor_entry_field.pack()
             button_quit = tk.Button(
                 form,
                 text='Quit',
@@ -300,5 +302,6 @@ class Platform:
             print(message)
             self.two_factor_code = input(prompt + ': ')
 
-    def set_two_factor_code(self, entry_field):
-        self.two_factor_code = entry_field.get()
+    def set_two_factor_code(self):
+        global two_factor_entry_field
+        self.two_factor_code = two_factor_entry_field.get()
