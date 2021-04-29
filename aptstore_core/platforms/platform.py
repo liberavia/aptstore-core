@@ -9,8 +9,6 @@ import tarfile
 import tkinter as tk
 from . import ACTION_ACTIVATE, ACTION_INSTALL, ACTION_REMOVE
 
-two_factor_entry_field = ""
-
 class Platform:
     """
     Base class for inheritance for defining a minimum set of available methods
@@ -276,7 +274,6 @@ class Platform:
         Gets an input from user. Depending if gui flag is set
         :return:
         """
-        global two_factor_entry_field
 
         if self.gui_mode:
             form = tk.Tk()
@@ -308,7 +305,6 @@ class Platform:
             print(message)
             self.two_factor_code = input(prompt + ': ')
 
-    def set_two_factor_code(self):
-        global two_factor_entry_field
+    def set_two_factor_code(self, two_factor_entry_field):
         self.two_factor_code = two_factor_entry_field.get()
 
