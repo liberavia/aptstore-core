@@ -138,6 +138,7 @@ class Reporter:
     def create_paths(self):
         """
         create paths needed for reporting
+        @todo: Better exception handling
         """
         pathlist = self.get_pathlist
 
@@ -146,6 +147,8 @@ class Reporter:
                 os.makedirs(path, 0o755)
                 os.chown(path, self.user_id, self.group_id)
             except FileExistsError:
+                pass
+            except OSError:
                 pass
 
     def get_pathlist(self):
