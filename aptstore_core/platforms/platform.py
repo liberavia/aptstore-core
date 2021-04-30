@@ -39,6 +39,7 @@ class Platform:
         self.admin_needed = False
         self.gui_mode = False
         self.data = {}
+        self.set_user_environment()
 
     def activate_platform(self):
         self.action = ACTION_ACTIVATE

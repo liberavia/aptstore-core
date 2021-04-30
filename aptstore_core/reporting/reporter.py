@@ -38,8 +38,8 @@ class Reporter:
     eta = ''
 
     def __init__(self):
-        self.create_paths()
         self.set_user_environment()
+        self.create_paths()
         pass
 
     def set_file_progress(self, path):
