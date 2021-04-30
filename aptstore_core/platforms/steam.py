@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 import os
 import subprocess
+import time
 
 import apt
 import requests
 import pexpect
-import tkinter
 from pexpect import EOF, TIMEOUT
 
 from . import ACTION_ACTIVATE
@@ -127,7 +127,9 @@ class Steam(Platform):
                 platform=PLATFORM_STEAM,
                 logfile=progress_file_path)
         )
-        process.communicate()
+        while process.poll() is not None:
+            time.sleep(1)
+            print("Installation is running. Create progress report...")
         print("Finished")
         os.remove(progress_file_path)
 
@@ -168,7 +170,9 @@ class Steam(Platform):
                 platform=PLATFORM_STEAM,
                 logfile=progress_file_path)
         )
-        process.communicate()
+        while process.poll() is not None:
+            time.sleep(1)
+            print("Removal is running. Create progress report...")
         print("Finished")
         os.remove(progress_file_path)
 
