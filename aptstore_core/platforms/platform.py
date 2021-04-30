@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
+import grp
 import os
+import pwd
 import sys
 
 import apt
@@ -15,6 +17,13 @@ class Platform:
     """
     Base class for inheritance for defining a minimum set of available methods
     """
+
+    # user
+    sudo_mode = None
+    user_name = None
+    user_id = None
+    group_id = None
+    user_home = None
 
     data = None
     platform_name = None
@@ -93,6 +102,7 @@ class Platform:
         for key, path in pathlist.items():
             try:
                 os.makedirs(path, 0o755)
+                os.chown(path, self.user_id, self.group_id)
             except FileExistsError:
                 pass
 
@@ -304,3 +314,18 @@ class Platform:
     def set_two_factor_code(self, two_factor_entry_field):
         self.two_factor_code = two_factor_entry_field.get()
 
+    def set_user_environment(self):
+        """
+        Cares about setting user data even if script is run with sudo
+        """
+        user_name = os.getenv('SUDO_USER')
+        if user_name:
+            self.sudo_mode = True
+        else:
+            self.sudo_mode = False
+            user_name = os.getenv('USER')
+
+        self.user_name = str(user_name)
+        self.user_id = pwd.getpwnam(self.user_name).pw_uid
+        self.group_id = grp.getgrnam(self.user_name).gr_gid
+        self.user_home = os.path.expanduser('~' + self.user_name)

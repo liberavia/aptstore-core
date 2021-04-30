@@ -23,21 +23,20 @@ class Steam(Platform):
         self.platform_name = PLATFORM_STEAM
         self.data = {
             'paths': {
-                'steam': os.path.expanduser('~') + '/.aptstore/steam/',
-                'progress': os.path.expanduser('~') + '/.aptstore/progress/',
-                'binaries': os.path.expanduser('~') + '/.aptstore/bin/',
+                'progress': self.user_home + '/.aptstore/progress/',
+                'binaries': self.user_home + '/.aptstore/bin/',
             },
             'binaries': {
-                'steamcmd': os.path.expanduser('~') + '/.aptstore/bin/steamcmd.sh',
+                'steamcmd': self.user_home + '/.aptstore/bin/steamcmd.sh',
             },
             'downloads': {
                 'steamcmd': {
                     'source': 'https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz',
-                    'target': os.path.expanduser('~') + '/.aptstore/bin/steamcmd.tar.gz',
+                    'target': self.user_home + '/.aptstore/bin/steamcmd.tar.gz',
                     'type': 'tarfile',
                     'validate': {
-                        'steamcmd': os.path.expanduser('~') + '/.aptstore/bin/steamcmd.sh',
-                        'linux32': os.path.expanduser('~') + '/.aptstore/bin/linux32',
+                        'steamcmd': self.user_home + '/.aptstore/bin/steamcmd.sh',
+                        'linux32': self.user_home + '/.aptstore/bin/linux32',
                     }
                 },
             },

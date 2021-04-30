@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
 import sys
-import apt_pkg
 import apt
 from apt.progress import base, text
 from . import PLATFORM_DEBIAN
@@ -22,7 +21,6 @@ class Debian(Platform):
         self.admin_needed = True
         self.data = {
             'paths': {
-                'debian': os.path.expanduser('~') + '/.aptstore/debian/',
                 'progress': os.path.expanduser('~') + '/.aptstore/progress/',
             },
         }
