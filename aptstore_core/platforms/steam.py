@@ -138,7 +138,8 @@ class Steam(Platform):
             time.sleep(1)
             reporter.create_report(REPORT_TYPE_PROGRESS)
         print("Finished")
-        # os.remove(progress_file_path)
+        os.remove(progress_file_path)
+        reporter.delete_report()
 
     def remove_steam_app(self, login, password):
         """
@@ -186,7 +187,6 @@ class Steam(Platform):
         while process.poll() is not None:
             time.sleep(1)
             reporter.create_report(REPORT_TYPE_PROGRESS)
-            print("Removal is running. Create progress report...")
         print("Finished")
         os.remove(progress_file_path)
 

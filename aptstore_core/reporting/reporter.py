@@ -137,6 +137,10 @@ class Reporter:
             )
             sys.exit(1)
 
+    def delete_report(self):
+        if os.path.isfile(self.file_report):
+            os.remove(self.file_report)
+
     def create_installed_report(self):
         pass
 
