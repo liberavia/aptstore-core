@@ -11,6 +11,8 @@ from pexpect import EOF, TIMEOUT
 from . import ACTION_ACTIVATE
 from . import PLATFORM_STEAM
 from .platform import Platform
+from ..reporting import REPORT_TYPE_PROGRESS, REPORT_TYPE_PURCHASED, REPORT_TYPE_INSTALLED
+from ..reporting.steam import ReporterSteam
 
 
 class Steam(Platform):
@@ -105,6 +107,10 @@ class Steam(Platform):
         if os.path.isfile(progress_file_path):
             raise FileExistsError("Process already running. Abort.")
 
+        reporter = ReporterSteam()
+        reporter.set_app_ident(self.ident)
+        reporter.set_file_progress(progress_file_path)
+
         command_elements = [
             'unbuffer',
             steamcmd,
@@ -127,11 +133,12 @@ class Steam(Platform):
                 platform=PLATFORM_STEAM,
                 logfile=progress_file_path)
         )
-        while process.poll() is not None:
+
+        while process.poll() is None:
             time.sleep(1)
-            print("Installation is running. Create progress report...")
+            reporter.create_report(REPORT_TYPE_PROGRESS)
         print("Finished")
-        os.remove(progress_file_path)
+        # os.remove(progress_file_path)
 
     def remove_steam_app(self, login, password):
         """
@@ -168,10 +175,17 @@ class Steam(Platform):
         print(
             "Remove app via {platform}. Follow progress at {logfile}".format(
                 platform=PLATFORM_STEAM,
-                logfile=progress_file_path)
+                logfile=progress_file_path
+            )
         )
+
+        reporter = ReporterSteam()
+        reporter.set_app_ident(self.ident)
+        reporter.set_file_progress(progress_file_path)
+
         while process.poll() is not None:
             time.sleep(1)
+            reporter.create_report(REPORT_TYPE_PROGRESS)
             print("Removal is running. Create progress report...")
         print("Finished")
         os.remove(progress_file_path)
@@ -200,7 +214,7 @@ class Steam(Platform):
         params = [
             'expect',
             'gdebi',
-            'steam-launcher',
+            # 'steam-launcher',
             'libgl1-mesa-dri:i386',
             'libgl1:i386',
             'libc6:i386',
