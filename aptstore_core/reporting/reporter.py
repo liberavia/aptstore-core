@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+import glob
 import pwd
 import grp
 import os
@@ -51,7 +51,7 @@ class Reporter:
         self.file_progress = path
 
     def set_file_report(self):
-        if not self.app_ident:
+        if not self.app_ident and self.report_type == REPORT_TYPE_PROGRESS:
             raise ValueError('Abort. Cannot set report file without ident')
             sys.exit(1)
         if not self.user_home:
@@ -63,8 +63,10 @@ class Reporter:
         file_report_path = ''
         if self.report_type == REPORT_TYPE_PROGRESS:
             file_report_path = base_path + REPORT_PATH_PROGRESS + self.platform + '/'
+        if self.report_type == REPORT_TYPE_INSTALLED:
+            file_report_path = base_path + REPORT_PATH_INSTALLED + self.platform + '/'
 
-        file_report_path += self.app_ident
+        file_report_path += str(self.app_ident)
         file_report_path += ".json"
 
         self.file_report = file_report_path
@@ -249,3 +251,11 @@ class Reporter:
             if len(lines) >= to_read or pos == 0:
                 return lines[-to_read:offset and -offset or None]
             avg_line_length *= 1.3
+
+    def delete_installed_cache(self, path):
+        files = glob.glob(path + '*.json')
+        for f in files:
+            try:
+                f.unlink()
+            except OSError as e:
+                print("Error: %s : %s" % (f, e.strerror))

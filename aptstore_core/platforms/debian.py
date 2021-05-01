@@ -15,13 +15,13 @@ class Debian(Platform):
     progress_acquire = None
     progress_install = None
 
-    def __init__(self, action=None):
-        super(Debian, self).__init__(action)
+    def __init__(self, **kwargs):
+        super(Debian, self).__init__(**kwargs)
         self.platform_name = PLATFORM_DEBIAN
         self.admin_needed = True
         self.data = {
             'paths': {
-                'progress': os.path.expanduser('~') + '/.aptstore/progress/',
+                'progress': self.user_home + '/.aptstore/progress/',
             },
         }
 

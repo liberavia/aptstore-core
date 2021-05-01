@@ -1,17 +1,35 @@
 # -*- coding: utf-8 -*-
+import os.path
 import re
 import sys
 import json
+import glob
 
+from . import REPORT_PATH_INSTALLED
 from .reporter import Reporter
 from ..platforms import PLATFORM_STEAM
 
 
 class ReporterSteam(Reporter):
+    data = None
 
     def __init__(self):
         super(ReporterSteam, self).__init__()
         self.platform = PLATFORM_STEAM
+
+    def create_installed_report(self):
+        """
+        Creates report of installed steam apps
+        :return:
+        """
+        self.delete_installed_cache(REPORT_PATH_INSTALLED)
+
+        report_file = open(self.file_report, 'r')
+        for line in report_file:
+            self.app_ident = None
+            self.app_name = None
+            self.parse_installed_line(line)
+            self.write_installed_cache_for_app()
 
     def get_pathlist(self):
         """
@@ -38,6 +56,11 @@ class ReporterSteam(Reporter):
         self.filter_progress_data(latest_progress)
 
     def filter_progress_data(self, line):
+        """
+        Filter progress data from raw output
+        :param line:
+        :return:
+        """
         line = line.lstrip()
         if not line:
             print("No progress data to filter")
@@ -125,6 +148,11 @@ class ReporterSteam(Reporter):
             self.download_done = 0
 
     def calculate_speed(self):
+        """
+        Calculates speed by comparing recent and current
+        downloaded kBytes
+        :return:
+        """
         with open(self.file_report, 'r') as report_file:
             json_report = json.loads(report_file.read())
             report_file.close()
@@ -133,3 +161,37 @@ class ReporterSteam(Reporter):
             download_done_now = self.download_done_kbytes
             download_delta = download_done_now - download_done_before
             self.download_rate = download_delta
+
+    def parse_installed_line(self, line):
+        """
+        Parses line of raw installed progress file and
+        fetch needed values from it
+        :param line:
+        :return:
+        """
+        pattern = 'AppID ([0-9]+) : "([A-za-z0-9 ]+)"'
+        matches = re.findall(pattern, line, re.DOTALL)
+        try:
+            matches = list(matches[0])
+        except IndexError:
+            matches = []
+
+        if matches.count() == 2:
+            self.app_ident = matches[0]
+            self.app_name = matches[1]
+
+    def write_installed_cache_for_app(self):
+        """
+        Create cache file for current app ident
+        :return:
+        """
+        self.set_file_report()
+        app_file = open(self.file_report, 'w')
+        app_data = {
+            'platform': self.platform,
+            'app_ident': self.app_ident,
+            'app_name': self.app_name,
+        }
+        json_data = json.dumps(app_data)
+        app_file.write(json_data)
+        app_file.close()

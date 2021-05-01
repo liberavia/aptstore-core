@@ -17,6 +17,8 @@ class Platform:
     """
     Base class for inheritance for defining a minimum set of available methods
     """
+    # functional elements
+    reporter = None
 
     # user
     sudo_mode = None
@@ -29,17 +31,28 @@ class Platform:
     platform_name = None
     action = None
     ident = None
+    login = None
+    password = None
     admin_needed = None
     gui_mode = None
     two_factor_code = None
 
-    def __init__(self, action=None):
-        # admin_needed defaulted to False
+    def __init__(self, **kwargs):
+        action = kwargs.get('action')
         self.action = action
         self.admin_needed = False
         self.gui_mode = False
         self.data = {}
         self.set_user_environment()
+
+    def set_login(self, login):
+        self.login = login
+
+    def set_password(self, password):
+        self.password = password
+
+    def set_reporter(self, reporter):
+        self.reporter = reporter
 
     def activate_platform(self):
         self.action = ACTION_ACTIVATE
@@ -92,7 +105,6 @@ class Platform:
         if list(set(entered_params).difference(expected_params)):
             inv = ','.join(list(set(entered_params).difference(expected_params)))
             raise ValueError('Unexpected arg(s) {} in kwargs'.format(inv))
-        pass
 
     def create_paths(self):
         """
@@ -179,6 +191,18 @@ class Platform:
         progress_filename += '.log'
 
         return progress_filename
+
+    def get_installed_filename(self, userident=None):
+        """
+        Returns unique filename for installed apps
+        :param userident:
+        :return:
+        """
+        if userident:
+            installed_filename = "installed_" + userident + ".cache"
+        else:
+            installed_filename = "installed.cache"
+        return installed_filename
 
     def check_system_packages(self):
         """
