@@ -22,9 +22,10 @@ class ReporterSteam(Reporter):
         Creates report of installed steam apps
         :return:
         """
+        super(ReporterSteam, self).create_installed_report()
         self.delete_installed_cache(REPORT_PATH_INSTALLED)
 
-        report_file = open(self.file_report, 'r')
+        report_file = open(self.file_progress, 'r')
         for line in report_file:
             self.app_ident = None
             self.app_name = None
@@ -176,7 +177,7 @@ class ReporterSteam(Reporter):
         except IndexError:
             matches = []
 
-        if matches.count() == 2:
+        if len(matches) == 2:
             self.app_ident = matches[0]
             self.app_name = matches[1]
 

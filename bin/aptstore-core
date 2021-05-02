@@ -62,7 +62,7 @@ gui = args.gui
 from aptstore_core.aptstore_core import AptStoreCore
 print("Platform: " + platform)
 print("Action: " + action)
-aptstore = AptStoreCore(platform, action)
+aptstore = AptStoreCore(action)
 if ident:
     aptstore.set_ident(ident)
 if login:
@@ -71,6 +71,7 @@ if password:
     aptstore.set_password(password)
 if gui:
     aptstore.set_gui_mode()
+aptstore.set_platform(platform)
 
 # get options
 aptstore.trigger_action()

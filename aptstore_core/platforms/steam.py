@@ -7,11 +7,13 @@ import apt
 import requests
 import pexpect
 from pexpect import EOF, TIMEOUT
+from pathlib import Path
 
 from . import ACTION_ACTIVATE
 from . import PLATFORM_STEAM
 from .platform import Platform
 from ..reporting import REPORT_TYPE_PROGRESS, REPORT_TYPE_PURCHASED, REPORT_TYPE_INSTALLED
+from ..reporting import REPORT_TYPE_PROGRESS, REPORT_TYPE_PURCHASED, REPORT_PATH_INSTALLED
 from ..reporting.steam import ReporterSteam
 
 
@@ -141,10 +143,14 @@ class Steam(Platform):
             time.sleep(1)
             self.reporter.create_report(REPORT_TYPE_PROGRESS)
         print("Finished")
-        os.remove(progress_file_path)
+        try:
+            os.remove(progress_file_path)
+        except FileNotFoundError:
+            pass
         self.reporter.delete_report()
+        self.update_installed_apps()
 
-    def remove_steam_app(self, login, password):
+    def remove_steam_app(self):
         """
         Performing removal of a steam app
 
@@ -155,43 +161,65 @@ class Steam(Platform):
         """
         steamcmd = self.data['binaries']['steamcmd']
         progress_path = self.data['paths']['progress']
-        progress_file = self.get_progress_filename(userident=login, appident=self.ident)
+        progress_file = self.get_progress_filename(userident=self.login, appident=self.ident)
         progress_file_path = os.path.join(progress_path, progress_file)
 
         if os.path.isfile(progress_file_path):
             raise FileExistsError("Process already running. Abort.")
 
-        command_elements = [
-            'unbuffer',
+        command_elements_start = [
             steamcmd,
             '+login',
             self.login,
             self.password,
-            '+app_uninstall -complete',
-            self.ident,
-            '+quit',
-            '>>',
-            progress_file_path
         ]
-
-        remove_command = ' '.join(command_elements)
-        process = subprocess.Popen(remove_command, shell=True, close_fds=True)
+        Path(progress_file_path).touch()
+        progress_file = open(progress_file_path, 'w+')
         print(
             "Remove app via {platform}. Follow progress at {logfile}".format(
-                platform=PLATFORM_STEAM,
+                platform=self.platform_name,
                 logfile=progress_file_path
             )
         )
-
         self.reporter.set_app_ident(self.ident)
         self.reporter.set_file_progress(progress_file_path)
 
-        while process.poll() is not None:
-            time.sleep(1)
-            self.reporter.create_report(REPORT_TYPE_PROGRESS)
+        expect_prompt = 'Steam>'
+        command_start = ' '.join(command_elements_start)
+
+        try:
+            child = pexpect.spawn(command_start)
+            child.expect(expect_prompt)
+            progress_file.write("Successfully logged in")
+            command_elements_remove_app = [
+                'app_uninstall',
+                '-complete',
+                self.ident,
+            ]
+            command_remove_app = ' '.join(command_elements_remove_app)
+            child.sendline(command_remove_app)
+            child.after
+            child.expect(expect_prompt)
+            print("App removed: " + self.ident)
+            progress_file.write("App removed: " + self.ident)
+            child.sendline('apps_installed')
+            child.expect(expect_prompt)
+            child.sendline('quit')
+            child.terminate()
+        except EOF:
+            print("EOF")
+        except TIMEOUT:
+            print("Timeout")
+            progress_file.write("Timeout")
+
         print("Finished")
-        os.remove(progress_file_path)
+        try:
+            progress_file.close()
+            os.remove(progress_file_path)
+        except FileNotFoundError:
+            pass
         self.reporter.delete_report()
+        self.update_installed_apps()
 
     def get_platform_dependencies(self):
         """
@@ -245,10 +273,9 @@ class Steam(Platform):
             raise ValueError("Cache for installed steam apps not created")
 
     def check_installed_apps(self):
-        installed_file = self.get_installed_filename()
-        path = self.data['paths']['installed']
+        installed_file = self.get_installed_filename(userident=self.login)
+        path = self.data['paths']['progress']
         installed_filepath = os.path.join(path, installed_file)
-
         if not os.path.isfile(installed_filepath):
             raise FileNotFoundError
 
@@ -354,14 +381,24 @@ class Steam(Platform):
         installed_file = self.get_installed_filename(userident=self.login)
         installed_file_path = os.path.join(progress_path, installed_file)
 
+        # refresh caches
+        cache_path = str(
+            self.user_home +
+            '/.aptstore/' +
+            REPORT_PATH_INSTALLED +
+            'steam/'
+        )
+        self.reporter.delete_installed_cache(cache_path)
+
         command_elements = [
+            'unbuffer',
             steamcmd,
             '+login',
             self.login,
             self.password,
             '+apps_installed',
             '+quit',
-            '>>',
+            '>',
             installed_file_path
         ]
 
@@ -371,13 +408,13 @@ class Steam(Platform):
             "Updating cache of installed apps for {platform} at {cachefile}".
                 format(
                     platform=PLATFORM_STEAM,
-                    cachefile=installed_file_path
+                    cachefile=cache_path
                 )
         )
         process.communicate()
         self.reporter.set_file_progress(installed_file_path)
         self.reporter.create_report(REPORT_TYPE_INSTALLED)
-        print("Finished")
+        print("Finished cache update")
 
     def check_steam_login(self):
         """

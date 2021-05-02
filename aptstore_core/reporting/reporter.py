@@ -66,6 +66,9 @@ class Reporter:
         if self.report_type == REPORT_TYPE_INSTALLED:
             file_report_path = base_path + REPORT_PATH_INSTALLED + self.platform + '/'
 
+        if not self.app_ident:
+            self.app_ident = 'Unknown'
+
         file_report_path += str(self.app_ident)
         file_report_path += ".json"
 
@@ -140,7 +143,7 @@ class Reporter:
             sys.exit(1)
 
     def delete_report(self):
-        if os.path.isfile(self.file_report):
+        if os.path.isfile(str(self.file_report)):
             os.remove(self.file_report)
 
     def create_installed_report(self):
@@ -254,8 +257,8 @@ class Reporter:
 
     def delete_installed_cache(self, path):
         files = glob.glob(path + '*.json')
-        for f in files:
+        for file in files:
             try:
-                f.unlink()
+                os.remove(file)
             except OSError as e:
-                print("Error: %s : %s" % (f, e.strerror))
+                print("Error: %s : %s" % (file, e.strerror))

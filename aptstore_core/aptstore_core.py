@@ -15,9 +15,8 @@ class AptStoreCore:
     password = None
     gui_mode = False
 
-    def __init__(self, platform, action):
+    def __init__(self, action):
         self.set_action(action)
-        self.set_platform(platform)
         self.login = ""
         self.password = ""
 
@@ -41,7 +40,11 @@ class AptStoreCore:
             )
 
         if platform == platforms.PLATFORM_PROTON:
-            self.platform = Proton(action=self.action)
+            self.platform = Steam(
+                action=self.action,
+                login=self.login,
+                password=self.password,
+            )
 
         if platform == platforms.PLATFORM_DEBIAN:
             self.platform = Debian(action=self.action)
