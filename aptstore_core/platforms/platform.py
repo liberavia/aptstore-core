@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
+import grp
 import os
+import pwd
 import sys
 
 import apt
@@ -11,25 +13,47 @@ from tkinter import simpledialog
 
 from . import ACTION_ACTIVATE, ACTION_INSTALL, ACTION_REMOVE
 
+
 class Platform:
     """
     Base class for inheritance for defining a minimum set of available methods
     """
+    # functional elements
+    reporter = None
+
+    # user
+    sudo_mode = None
+    user_name = None
+    user_id = None
+    group_id = None
+    user_home = None
 
     data = None
     platform_name = None
     action = None
     ident = None
+    login = None
+    password = None
     admin_needed = None
     gui_mode = None
     two_factor_code = None
 
-    def __init__(self, action=None):
-        # admin_needed defaulted to False
+    def __init__(self, **kwargs):
+        action = kwargs.get('action')
         self.action = action
         self.admin_needed = False
         self.gui_mode = False
         self.data = {}
+        self.set_user_environment()
+
+    def set_login(self, login):
+        self.login = login
+
+    def set_password(self, password):
+        self.password = password
+
+    def set_reporter(self, reporter):
+        self.reporter = reporter
 
     def activate_platform(self):
         self.action = ACTION_ACTIVATE
@@ -82,7 +106,6 @@ class Platform:
         if list(set(entered_params).difference(expected_params)):
             inv = ','.join(list(set(entered_params).difference(expected_params)))
             raise ValueError('Unexpected arg(s) {} in kwargs'.format(inv))
-        pass
 
     def create_paths(self):
         """
@@ -93,6 +116,7 @@ class Platform:
         for key, path in pathlist.items():
             try:
                 os.makedirs(path, 0o755)
+                os.chown(path, self.user_id, self.group_id)
             except FileExistsError:
                 pass
 
@@ -118,7 +142,8 @@ class Platform:
                 tar.close()
                 os.remove(target_path)
 
-    def validate_download(self, download):
+    @staticmethod
+    def validate_download(download):
         """
         Checks if all configured files and or directories are available
         If this is the case raise a ValueError
@@ -129,15 +154,16 @@ class Platform:
 
         for key, value in check_paths.items():
             not_existing = (
-                not os.path.isfile(value) and
-                not os.path.isdir(value)
+                    not os.path.isfile(value) and
+                    not os.path.isdir(value)
             )
             if not_existing:
                 return
 
         raise ValueError('Already downloaded that one. skip')
 
-    def get_md5(self, ingoing):
+    @staticmethod
+    def get_md5(ingoing):
         """
         Returns an md5 hash of ingoing string
         :param ingoing:
@@ -161,13 +187,26 @@ class Platform:
             self.platform_name,
             appident,
         ]
-        if userident != None:
+        if userident is not None:
             progress_file.append(userident)
 
         progress_filename = '_'.join(progress_file)
         progress_filename += '.log'
 
         return progress_filename
+
+    @staticmethod
+    def get_installed_filename(userident=None):
+        """
+        Returns unique filename for installed apps
+        :param userident:
+        :return:
+        """
+        if userident:
+            installed_filename = "installed_" + userident + ".cache"
+        else:
+            installed_filename = "installed.cache"
+        return installed_filename
 
     def check_system_packages(self):
         """
@@ -191,7 +230,7 @@ class Platform:
         """
         if os.getuid() != 0:
             raise ValueError(
-                "Installing systemdependencies needs root rights. " 
+                "Installing systemdependencies needs root rights. "
                 "Please try 'sudo aptstore-core {platform} {action}' instead".format(
                     platform=self.platform_name,
                     action=ACTION_ACTIVATE,
@@ -213,7 +252,7 @@ class Platform:
         print("Check user permissions...")
         if os.getuid() != 0 and self.admin_needed:
             raise PermissionError(
-                "Action needs administrative permission.\n" 
+                "Action needs administrative permission.\n"
                 "Please try 'sudo aptstore-core {platform} {action} {ident}' instead".format(
                     platform=self.platform_name,
                     action=self.action,
@@ -222,7 +261,7 @@ class Platform:
             )
         if os.getuid() == 0 and not self.admin_needed:
             raise PermissionError(
-                "Root rights are not allowed for action!\n" 
+                "Root rights are not allowed for action!\n"
                 "Please try 'aptstore-core {platform} {action} {ident}' instead".format(
                     platform=self.platform_name,
                     action=self.action,
@@ -248,7 +287,8 @@ class Platform:
             print(err)
             sys.exit("Wrong permissions")
 
-    def get_install_params(self):
+    @staticmethod
+    def get_install_params():
         """
         Returns list of expected params for a proper installation
         :return: list
@@ -304,3 +344,18 @@ class Platform:
     def set_two_factor_code(self, two_factor_entry_field):
         self.two_factor_code = two_factor_entry_field.get()
 
+    def set_user_environment(self):
+        """
+        Cares about setting user data even if script is run with sudo
+        """
+        user_name = os.getenv('SUDO_USER')
+        if user_name:
+            self.sudo_mode = True
+        else:
+            self.sudo_mode = False
+            user_name = os.getenv('USER')
+
+        self.user_name = str(user_name)
+        self.user_id = pwd.getpwnam(self.user_name).pw_uid
+        self.group_id = grp.getgrnam(self.user_name).gr_gid
+        self.user_home = os.path.expanduser('~' + self.user_name)

@@ -1,16 +1,20 @@
 # -*- coding: utf-8 -*-
 import os
 import subprocess
+import time
+from pathlib import Path
 
 import apt
-import requests
 import pexpect
-import tkinter
+import requests
 from pexpect import EOF, TIMEOUT
 
 from . import ACTION_ACTIVATE
 from . import PLATFORM_STEAM
 from .platform import Platform
+from ..reporting import REPORT_TYPE_INSTALLED
+from ..reporting import REPORT_TYPE_PROGRESS, REPORT_PATH_INSTALLED
+from ..reporting.steam import ReporterSteam
 
 
 class Steam(Platform):
@@ -18,26 +22,29 @@ class Steam(Platform):
     Steam platform
     """
 
-    def __init__(self, action=None):
-        super(Steam, self).__init__(action)
+    def __init__(self, **kwargs):
+        super(Steam, self).__init__(**kwargs)
+        self.set_reporter(ReporterSteam())
+        self.set_login(kwargs.get('login'))
+        self.set_password(kwargs.get('password'))
         self.platform_name = PLATFORM_STEAM
         self.data = {
             'paths': {
-                'steam': os.path.expanduser('~') + '/.aptstore/steam/',
-                'progress': os.path.expanduser('~') + '/.aptstore/progress/',
-                'binaries': os.path.expanduser('~') + '/.aptstore/bin/',
+                'installed': self.user_home + '/.aptstore/installed/steam/',
+                'progress': self.user_home + '/.aptstore/progress/',
+                'binaries': self.user_home + '/.aptstore/bin/',
             },
             'binaries': {
-                'steamcmd': os.path.expanduser('~') + '/.aptstore/bin/steamcmd.sh',
+                'steamcmd': self.user_home + '/.aptstore/bin/steamcmd.sh',
             },
             'downloads': {
                 'steamcmd': {
                     'source': 'https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz',
-                    'target': os.path.expanduser('~') + '/.aptstore/bin/steamcmd.tar.gz',
+                    'target': self.user_home + '/.aptstore/bin/steamcmd.tar.gz',
                     'type': 'tarfile',
                     'validate': {
-                        'steamcmd': os.path.expanduser('~') + '/.aptstore/bin/steamcmd.sh',
-                        'linux32': os.path.expanduser('~') + '/.aptstore/bin/linux32',
+                        'steamcmd': self.user_home + '/.aptstore/bin/steamcmd.sh',
+                        'linux32': self.user_home + '/.aptstore/bin/linux32',
                     }
                 },
             },
@@ -49,7 +56,22 @@ class Steam(Platform):
                 }
             },
         }
-        self.initialize_platform()
+        try:
+            self.platform_initialized()
+        except ValueError:
+            self.initialize_platform()
+
+    def validate_params(self, entered_params, expected_params):
+        """
+        Validates parameters
+        :param entered_params:
+        :param expected_params:
+        :return:
+        """
+        super(Steam, self).validate_params(entered_params, expected_params)
+
+        if not self.login or not self.password:
+            raise ValueError("Steam needs login data")
 
     def install(self, **kwargs):
         """
@@ -59,17 +81,8 @@ class Steam(Platform):
         """
         super(Steam, self).install(**kwargs)
         try:
-            self.platform_initialized()
-            expected_params = self.get_install_params()
-            self.validate_params(kwargs.keys(), expected_params)
-        except ValueError:
-            return
-
-        login = kwargs.get('login')
-        password = kwargs.get('password')
-        try:
-            self.check_steam_login(login, password)
-            self.install_steam_app(login, password)
+            self.check_steam_login()
+            self.install_steam_app()
         except FileExistsError as err:
             print(err)
 
@@ -81,37 +94,35 @@ class Steam(Platform):
         """
         super(Steam, self).remove(**kwargs)
 
-        login = kwargs.get('login')
-        password = kwargs.get('password')
         try:
-            self.check_steam_login(login, password)
-            self.remove_steam_app(login, password)
+            self.check_steam_login()
+            self.remove_steam_app()
         except FileExistsError as err:
             print(err)
 
-    def install_steam_app(self, login, password):
+    # noinspection PyTypeChecker
+    def install_steam_app(self):
         """
         Performing installation of a steam app
-
-        :param appid:
-        :param login:
-        :param password:
         :return:
         """
         steamcmd = self.data['binaries']['steamcmd']
         progress_path = self.data['paths']['progress']
-        progress_file = self.get_progress_filename(userident=login, appident=self.ident)
+        progress_file = self.get_progress_filename(userident=self.login, appident=self.ident)
         progress_file_path = os.path.join(progress_path, progress_file)
 
         if os.path.isfile(progress_file_path):
             raise FileExistsError("Process already running. Abort.")
 
+        self.reporter.set_app_ident(self.ident)
+        self.reporter.set_file_progress(progress_file_path)
+
         command_elements = [
             'unbuffer',
             steamcmd,
             '+login',
-            login,
-            password,
+            self.login,
+            self.password,
             '+app_update',
             self.ident,
             'validate',
@@ -121,73 +132,92 @@ class Steam(Platform):
         ]
 
         start_command = ' '.join(command_elements)
-        process= subprocess.Popen(start_command, shell=True, close_fds=True)
+        process = subprocess.Popen(start_command, shell=True, close_fds=True)
         print(
-            "Install app via {platform}. Follow progress at {logfile}".
-                format(
-                platform=PLATFORM_STEAM,
-                logfile=progress_file_path)
+            "Install app via {platform}. Follow progress at {logfile}".format(
+                    platform=PLATFORM_STEAM,
+                    logfile=progress_file_path
+            )
         )
-        process.communicate()
-        print("Finished")
-        os.remove(progress_file_path)
 
-    def remove_steam_app(self, login, password):
+        while process.poll() is None:
+            time.sleep(1)
+            self.reporter.create_report(REPORT_TYPE_PROGRESS)
+        print("Finished")
+        try:
+            os.remove(progress_file_path)
+        except FileNotFoundError:
+            pass
+        self.reporter.delete_report()
+        self.update_installed_apps()
+
+    # noinspection PyTypeChecker
+    def remove_steam_app(self):
         """
         Performing removal of a steam app
-
-        :param appid:
-        :param login:
-        :param password:
         :return:
         """
         steamcmd = self.data['binaries']['steamcmd']
         progress_path = self.data['paths']['progress']
-        progress_file = self.get_progress_filename(userident=login, appident=self.ident)
+        progress_file = self.get_progress_filename(userident=self.login, appident=self.ident)
         progress_file_path = os.path.join(progress_path, progress_file)
 
         if os.path.isfile(progress_file_path):
             raise FileExistsError("Process already running. Abort.")
 
-        command_elements = [
-            'unbuffer',
+        command_elements_start = [
             steamcmd,
             '+login',
-            login,
-            password,
-            '+app_uninstall -complete',
-            self.ident,
-            '+quit',
-            '>>',
-            progress_file_path
+            self.login,
+            self.password,
         ]
-
-        remove_command = ' '.join(command_elements)
-        process = subprocess.Popen(remove_command, shell=True, close_fds=True)
+        Path(progress_file_path).touch()
+        progress_file = open(progress_file_path, 'w+')
         print(
             "Remove app via {platform}. Follow progress at {logfile}".format(
-                platform=PLATFORM_STEAM,
-                logfile=progress_file_path)
+                platform=self.platform_name,
+                logfile=progress_file_path
+            )
         )
-        process.communicate()
+        self.reporter.set_app_ident(self.ident)
+        self.reporter.set_file_progress(progress_file_path)
+
+        expect_prompt = 'Steam>'
+        command_start = ' '.join(command_elements_start)
+
+        try:
+            child = pexpect.spawn(command_start)
+            child.expect(expect_prompt)
+            progress_file.write("Successfully logged in")
+            command_elements_remove_app = [
+                'app_uninstall',
+                '-complete',
+                self.ident,
+            ]
+            command_remove_app = ' '.join(command_elements_remove_app)
+            child.sendline(command_remove_app)
+            after = child.after
+            child.expect(expect_prompt)
+            print("App removed: " + self.ident)
+            progress_file.write("App removed: " + self.ident)
+            child.sendline('apps_installed')
+            child.expect(expect_prompt)
+            child.sendline('quit')
+            child.terminate()
+        except EOF:
+            print("EOF")
+        except TIMEOUT:
+            print("Timeout")
+            progress_file.write("Timeout")
+
         print("Finished")
-        os.remove(progress_file_path)
-
-    def get_install_params(self):
-        """
-        Returns list of expected params for a proper installation
-        :return: list
-        """
-        params = [
-            'platform',
-            'action',
-            'ident',
-            'login',
-            'password',
-            'gui_mode',
-        ]
-
-        return params
+        try:
+            progress_file.close()
+            os.remove(progress_file_path)
+        except FileNotFoundError:
+            pass
+        self.reporter.delete_report()
+        self.update_installed_apps()
 
     def get_platform_dependencies(self):
         """
@@ -197,7 +227,7 @@ class Steam(Platform):
         params = [
             'expect',
             'gdebi',
-            'steam-launcher',
+            # 'steam-launcher',
             'libgl1-mesa-dri:i386',
             'libgl1:i386',
             'libc6:i386',
@@ -215,7 +245,9 @@ class Steam(Platform):
         super(Steam, self).initialize_platform()
         self.create_paths()
         self.perform_downloads()
+        self.update_installed_apps()
 
+    # noinspection PyTypeChecker
     def platform_initialized(self):
         """
         Check if all needed elements for platform are available
@@ -232,6 +264,20 @@ class Steam(Platform):
             self.check_system_packages()
         except ValueError:
             raise ValueError("Not all packages available")
+
+        # cache for installed apps built at least once
+        try:
+            self.check_installed_apps()
+        except FileNotFoundError:
+            raise ValueError("Cache for installed steam apps not created")
+
+    # noinspection PyTypeChecker
+    def check_installed_apps(self):
+        installed_file = self.get_installed_filename(userident=self.login)
+        path = self.data['paths']['progress']
+        installed_filepath = os.path.join(path, installed_file)
+        if not os.path.isfile(installed_filepath):
+            raise FileNotFoundError
 
     def activate_platform(self):
         """
@@ -260,7 +306,7 @@ class Steam(Platform):
         """
         if os.getuid() != 0:
             raise ValueError(
-                "Installing systemdependencies needs root rights. " 
+                "Installing systemdependencies needs root rights. "
                 "Please try 'sudo aptstore-core {platform} {action}' instead".format(
                     platform=self.platform_name,
                     action=ACTION_ACTIVATE,
@@ -299,9 +345,10 @@ class Steam(Platform):
             ]
 
             install_command = ' '.join(command_elements)
-            process = subprocess.Popen(install_command, shell=True, close_fds=True)
+            subprocess.Popen(install_command, shell=True, close_fds=True)
 
-    def download_external_package(self, source, target):
+    @staticmethod
+    def download_external_package(source, target):
         """
         Downloads from source and place package at target
         :param source:
@@ -311,7 +358,8 @@ class Steam(Platform):
         r = requests.get(source, allow_redirects=True)
         open(target, 'wb').write(r.content)
 
-    def activate_i386(self):
+    @staticmethod
+    def activate_i386():
         """
         Enables 32bit architecture mandatory for steam to work
         :return:
@@ -323,11 +371,56 @@ class Steam(Platform):
         ]
 
         command = ' '.join(command_elements)
-        process = subprocess.Popen(command, shell=True, close_fds=True)
+        subprocess.Popen(command, shell=True, close_fds=True)
 
-    def check_steam_login(self, login, password):
+    # noinspection PyTypeChecker
+    def update_installed_apps(self):
         """
-        Triggers a login via steamcmd for determine if there is some need for
+        Updates raw list
+        :return:
+        """
+        steamcmd = self.data['binaries']['steamcmd']
+        progress_path = self.data['paths']['progress']
+        installed_file = self.get_installed_filename(userident=self.login)
+        installed_file_path = os.path.join(progress_path, installed_file)
+
+        # refresh caches
+        cache_path = str(
+            self.user_home +
+            '/.aptstore/' +
+            REPORT_PATH_INSTALLED +
+            'steam/'
+        )
+        self.reporter.delete_installed_cache(cache_path)
+
+        command_elements = [
+            'unbuffer',
+            steamcmd,
+            '+login',
+            self.login,
+            self.password,
+            '+apps_installed',
+            '+quit',
+            '>',
+            installed_file_path
+        ]
+
+        start_command = ' '.join(command_elements)
+        process = subprocess.Popen(start_command, shell=True, close_fds=True)
+        print(
+            "Updating cache of installed apps for {platform} at {cachefile}".format(
+                platform=PLATFORM_STEAM,
+                cachefile=cache_path
+            )
+        )
+        process.communicate()
+        self.reporter.set_file_progress(installed_file_path)
+        self.reporter.create_report(REPORT_TYPE_INSTALLED)
+        print("Finished cache update")
+
+    def check_steam_login(self):
+        """
+        Triggers a login via steamcmd for determining if there is some need for
         two factor user validation
         :return:
         """
@@ -337,8 +430,8 @@ class Steam(Platform):
         command_elements = [
             steamcmd,
             '+login',
-            login,
-            password,
+            self.login,
+            self.password,
         ]
 
         shell_command = ' '.join(command_elements)
@@ -359,7 +452,7 @@ class Steam(Platform):
 
         try:
             if expected_match == 0:
-                child.after
+                after = child.after
                 message = (
                     "Your account is protected with Steam Guard.\n"
                     "A code has been sent to your E-Mail address.\n"
@@ -371,8 +464,8 @@ class Steam(Platform):
             elif expected_match == 1:
                 prompt = child.after
                 message = (
-                    "Your account is protected with Steam Guard.\n"
-                    "Please enter the code of captcha from:\n" + prompt
+                        "Your account is protected with Steam Guard.\n"
+                        "Please enter the code of captcha from:\n" + prompt
                 )
                 self.two_factor_input('Enter code: ', message)
                 child.sendline(self.two_factor_code)

@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-from . import platforms
-from .platforms.steam import Steam
-from .platforms.proton import Proton
-from .platforms.debian import Debian
 import sys
+
+from . import platforms
+from .platforms.debian import Debian
+from .platforms.steam import Steam
 
 
 class AptStoreCore:
@@ -15,9 +15,8 @@ class AptStoreCore:
     password = None
     gui_mode = False
 
-    def __init__(self, platform, action):
+    def __init__(self, action):
         self.set_action(action)
-        self.set_platform(platform)
         self.login = ""
         self.password = ""
 
@@ -34,13 +33,21 @@ class AptStoreCore:
             sys.exit("Abort. Unknown platform")
 
         if platform == platforms.PLATFORM_STEAM:
-            self.platform = Steam(self.action)
+            self.platform = Steam(
+                action=self.action,
+                login=self.login,
+                password=self.password,
+            )
 
         if platform == platforms.PLATFORM_PROTON:
-            self.platform = Proton(self.action)
+            self.platform = Steam(
+                action=self.action,
+                login=self.login,
+                password=self.password,
+            )
 
         if platform == platforms.PLATFORM_DEBIAN:
-            self.platform = Debian(self.action)
+            self.platform = Debian(action=self.action)
 
     def set_action(self, action):
         try:
@@ -67,7 +74,8 @@ class AptStoreCore:
     def set_gui_mode(self):
         self.gui_mode = True
 
-    def validate_platform(self, platform):
+    @staticmethod
+    def validate_platform(platform):
         available_platforms = platforms.get_available_platforms()
 
         if platform not in available_platforms:
@@ -75,7 +83,8 @@ class AptStoreCore:
                 "Platform {platform} not available".format(platform=platform)
             )
 
-    def validate_action(self, action):
+    @staticmethod
+    def validate_action(action):
         available_actions = platforms.get_available_actions()
         if action not in available_actions:
             raise ValueError(
@@ -84,38 +93,18 @@ class AptStoreCore:
 
     def trigger_action(self):
         if self.action == platforms.ACTION_INSTALL:
-            if self.login:
-                self.platform.install(
-                    platform=self.platform_name,
-                    action=self.action,
-                    ident=self.ident,
-                    login=self.login,
-                    password=self.password,
-                    gui_mode=self.gui_mode,
-                )
-            else:
-                self.platform.install(
-                    platform=self.platform_name,
-                    action=self.action,
-                    ident=self.ident,
-                    gui_mode=self.gui_mode,
-                )
+            self.platform.install(
+                platform=self.platform_name,
+                action=self.action,
+                ident=self.ident,
+                gui_mode=self.gui_mode,
+            )
         if self.action == platforms.ACTION_REMOVE:
-            if self.login:
-                self.platform.remove(
-                    platform=self.platform_name,
-                    action=self.action,
-                    ident=self.ident,
-                    login=self.login,
-                    password=self.password,
-                    gui_mode=self.gui_mode,
-                )
-            else:
-                self.platform.remove(
-                    platform=self.platform_name,
-                    action=self.action,
-                    ident=self.ident,
-                    gui_mode=self.gui_mode,
-                )
+            self.platform.remove(
+                platform=self.platform_name,
+                action=self.action,
+                ident=self.ident,
+                gui_mode=self.gui_mode,
+            )
         if self.action == platforms.ACTION_ACTIVATE:
-                self.platform.activate_platform()
+            self.platform.activate_platform()
