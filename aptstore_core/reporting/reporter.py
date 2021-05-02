@@ -52,10 +52,10 @@ class Reporter:
 
     def set_file_report(self):
         if not self.app_ident and self.report_type == REPORT_TYPE_PROGRESS:
-            raise ValueError('Abort. Cannot set report file without ident')
+            print('Abort. Cannot set report file without ident')
             sys.exit(1)
         if not self.user_home:
-            raise ValueError('Abort. Cannot set report file without user home')
+            print('Abort. Cannot set report file without user home')
             sys.exit(1)
 
         base_path = self.user_home + '/.aptstore/'
@@ -127,7 +127,7 @@ class Reporter:
             data = self.get_progress_data()
 
         if not data:
-            raise ValueError("No data for creating progress report")
+            print("No data for creating progress report")
             sys.exit(1)
 
         json_data = json.dumps(data)
@@ -159,7 +159,7 @@ class Reporter:
         :return:
         """
         if not self.file_progress:
-            raise ValueError('Abort. Cannot create progress data without source')
+            print('Abort. Cannot create progress data without source')
             sys.exit(1)
         self.status_message = 'Working...'
 
@@ -229,12 +229,13 @@ class Reporter:
         progress_file_handler.close()
         try:
             parsed_message = latest_message[0]
-        except:
+        except IndexError:
             parsed_message = ''
 
         return parsed_message
 
-    def tail(self, filehandler, n, offset=0):
+    @staticmethod
+    def tail(filehandler, n, offset=0):
         """
         Reads n lines from filehandler with an offset of offset lines
         :param filehandler:
@@ -255,7 +256,8 @@ class Reporter:
                 return lines[-to_read:offset and -offset or None]
             avg_line_length *= 1.3
 
-    def delete_installed_cache(self, path):
+    @staticmethod
+    def delete_installed_cache(path):
         files = glob.glob(path + '*.json')
         for file in files:
             try:

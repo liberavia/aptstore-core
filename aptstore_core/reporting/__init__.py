@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-""" contants and stat functions """
+""" contents and stat functions """
 
 REPORT_TYPE_PURCHASED = 'purchased'
 REPORT_TYPE_INSTALLED = 'installed'
@@ -9,6 +9,7 @@ REPORT_FOLDER = 'reports/'
 REPORT_PATH_PURCHASED = REPORT_FOLDER + REPORT_TYPE_PURCHASED + '/'
 REPORT_PATH_INSTALLED = REPORT_FOLDER + REPORT_TYPE_INSTALLED + '/'
 REPORT_PATH_PROGRESS = REPORT_FOLDER + REPORT_TYPE_PROGRESS + '/'
+
 
 def get_available_report_types():
     """

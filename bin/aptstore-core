@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-import sys
-import os
 import argparse
+import os
+import sys
+import aptstore_core.platforms as platforms
 
 LAUNCH_PATH = os.path.dirname(os.path.realpath(__file__))
 
@@ -11,7 +12,6 @@ if os.path.isdir(os.path.join(LAUNCH_PATH, "../aptstore_core")):
     SOURCE_PATH = os.path.normpath(os.path.join(LAUNCH_PATH, '..'))
     sys.path.insert(0, SOURCE_PATH)
 
-import aptstore_core.platforms as platforms
 available_platforms_list = platforms.get_available_platforms()
 available_actions_list = platforms.get_available_actions()
 available_platforms = ', '.join(
@@ -58,8 +58,8 @@ login = args.login
 password = args.secret
 gui = args.gui
 
-
 from aptstore_core.aptstore_core import AptStoreCore
+
 print("Platform: " + platform)
 print("Action: " + action)
 aptstore = AptStoreCore(action)

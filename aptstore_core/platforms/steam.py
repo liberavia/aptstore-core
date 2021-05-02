@@ -2,18 +2,18 @@
 import os
 import subprocess
 import time
+from pathlib import Path
 
 import apt
-import requests
 import pexpect
+import requests
 from pexpect import EOF, TIMEOUT
-from pathlib import Path
 
 from . import ACTION_ACTIVATE
 from . import PLATFORM_STEAM
 from .platform import Platform
-from ..reporting import REPORT_TYPE_PROGRESS, REPORT_TYPE_PURCHASED, REPORT_TYPE_INSTALLED
-from ..reporting import REPORT_TYPE_PROGRESS, REPORT_TYPE_PURCHASED, REPORT_PATH_INSTALLED
+from ..reporting import REPORT_TYPE_INSTALLED
+from ..reporting import REPORT_TYPE_PROGRESS, REPORT_PATH_INSTALLED
 from ..reporting.steam import ReporterSteam
 
 
@@ -100,6 +100,7 @@ class Steam(Platform):
         except FileExistsError as err:
             print(err)
 
+    # noinspection PyTypeChecker
     def install_steam_app(self):
         """
         Performing installation of a steam app
@@ -131,12 +132,12 @@ class Steam(Platform):
         ]
 
         start_command = ' '.join(command_elements)
-        process= subprocess.Popen(start_command, shell=True, close_fds=True)
+        process = subprocess.Popen(start_command, shell=True, close_fds=True)
         print(
-            "Install app via {platform}. Follow progress at {logfile}".
-                format(
-                platform=PLATFORM_STEAM,
-                logfile=progress_file_path)
+            "Install app via {platform}. Follow progress at {logfile}".format(
+                    platform=PLATFORM_STEAM,
+                    logfile=progress_file_path
+            )
         )
 
         while process.poll() is None:
@@ -150,13 +151,10 @@ class Steam(Platform):
         self.reporter.delete_report()
         self.update_installed_apps()
 
+    # noinspection PyTypeChecker
     def remove_steam_app(self):
         """
         Performing removal of a steam app
-
-        :param appid:
-        :param login:
-        :param password:
         :return:
         """
         steamcmd = self.data['binaries']['steamcmd']
@@ -198,7 +196,7 @@ class Steam(Platform):
             ]
             command_remove_app = ' '.join(command_elements_remove_app)
             child.sendline(command_remove_app)
-            child.after
+            after = child.after
             child.expect(expect_prompt)
             print("App removed: " + self.ident)
             progress_file.write("App removed: " + self.ident)
@@ -249,6 +247,7 @@ class Steam(Platform):
         self.perform_downloads()
         self.update_installed_apps()
 
+    # noinspection PyTypeChecker
     def platform_initialized(self):
         """
         Check if all needed elements for platform are available
@@ -272,6 +271,7 @@ class Steam(Platform):
         except FileNotFoundError:
             raise ValueError("Cache for installed steam apps not created")
 
+    # noinspection PyTypeChecker
     def check_installed_apps(self):
         installed_file = self.get_installed_filename(userident=self.login)
         path = self.data['paths']['progress']
@@ -306,7 +306,7 @@ class Steam(Platform):
         """
         if os.getuid() != 0:
             raise ValueError(
-                "Installing systemdependencies needs root rights. " 
+                "Installing systemdependencies needs root rights. "
                 "Please try 'sudo aptstore-core {platform} {action}' instead".format(
                     platform=self.platform_name,
                     action=ACTION_ACTIVATE,
@@ -345,9 +345,10 @@ class Steam(Platform):
             ]
 
             install_command = ' '.join(command_elements)
-            process = subprocess.Popen(install_command, shell=True, close_fds=True)
+            subprocess.Popen(install_command, shell=True, close_fds=True)
 
-    def download_external_package(self, source, target):
+    @staticmethod
+    def download_external_package(source, target):
         """
         Downloads from source and place package at target
         :param source:
@@ -357,7 +358,8 @@ class Steam(Platform):
         r = requests.get(source, allow_redirects=True)
         open(target, 'wb').write(r.content)
 
-    def activate_i386(self):
+    @staticmethod
+    def activate_i386():
         """
         Enables 32bit architecture mandatory for steam to work
         :return:
@@ -369,8 +371,9 @@ class Steam(Platform):
         ]
 
         command = ' '.join(command_elements)
-        process = subprocess.Popen(command, shell=True, close_fds=True)
+        subprocess.Popen(command, shell=True, close_fds=True)
 
+    # noinspection PyTypeChecker
     def update_installed_apps(self):
         """
         Updates raw list
@@ -403,13 +406,12 @@ class Steam(Platform):
         ]
 
         start_command = ' '.join(command_elements)
-        process= subprocess.Popen(start_command, shell=True, close_fds=True)
+        process = subprocess.Popen(start_command, shell=True, close_fds=True)
         print(
-            "Updating cache of installed apps for {platform} at {cachefile}".
-                format(
-                    platform=PLATFORM_STEAM,
-                    cachefile=cache_path
-                )
+            "Updating cache of installed apps for {platform} at {cachefile}".format(
+                platform=PLATFORM_STEAM,
+                cachefile=cache_path
+            )
         )
         process.communicate()
         self.reporter.set_file_progress(installed_file_path)
@@ -450,7 +452,7 @@ class Steam(Platform):
 
         try:
             if expected_match == 0:
-                child.after
+                after = child.after
                 message = (
                     "Your account is protected with Steam Guard.\n"
                     "A code has been sent to your E-Mail address.\n"
@@ -462,8 +464,8 @@ class Steam(Platform):
             elif expected_match == 1:
                 prompt = child.after
                 message = (
-                    "Your account is protected with Steam Guard.\n"
-                    "Please enter the code of captcha from:\n" + prompt
+                        "Your account is protected with Steam Guard.\n"
+                        "Please enter the code of captcha from:\n" + prompt
                 )
                 self.two_factor_input('Enter code: ', message)
                 child.sendline(self.two_factor_code)

@@ -13,6 +13,7 @@ from tkinter import simpledialog
 
 from . import ACTION_ACTIVATE, ACTION_INSTALL, ACTION_REMOVE
 
+
 class Platform:
     """
     Base class for inheritance for defining a minimum set of available methods
@@ -141,7 +142,8 @@ class Platform:
                 tar.close()
                 os.remove(target_path)
 
-    def validate_download(self, download):
+    @staticmethod
+    def validate_download(download):
         """
         Checks if all configured files and or directories are available
         If this is the case raise a ValueError
@@ -152,15 +154,16 @@ class Platform:
 
         for key, value in check_paths.items():
             not_existing = (
-                not os.path.isfile(value) and
-                not os.path.isdir(value)
+                    not os.path.isfile(value) and
+                    not os.path.isdir(value)
             )
             if not_existing:
                 return
 
         raise ValueError('Already downloaded that one. skip')
 
-    def get_md5(self, ingoing):
+    @staticmethod
+    def get_md5(ingoing):
         """
         Returns an md5 hash of ingoing string
         :param ingoing:
@@ -184,7 +187,7 @@ class Platform:
             self.platform_name,
             appident,
         ]
-        if userident != None:
+        if userident is not None:
             progress_file.append(userident)
 
         progress_filename = '_'.join(progress_file)
@@ -192,7 +195,8 @@ class Platform:
 
         return progress_filename
 
-    def get_installed_filename(self, userident=None):
+    @staticmethod
+    def get_installed_filename(userident=None):
         """
         Returns unique filename for installed apps
         :param userident:
@@ -226,7 +230,7 @@ class Platform:
         """
         if os.getuid() != 0:
             raise ValueError(
-                "Installing systemdependencies needs root rights. " 
+                "Installing systemdependencies needs root rights. "
                 "Please try 'sudo aptstore-core {platform} {action}' instead".format(
                     platform=self.platform_name,
                     action=ACTION_ACTIVATE,
@@ -248,7 +252,7 @@ class Platform:
         print("Check user permissions...")
         if os.getuid() != 0 and self.admin_needed:
             raise PermissionError(
-                "Action needs administrative permission.\n" 
+                "Action needs administrative permission.\n"
                 "Please try 'sudo aptstore-core {platform} {action} {ident}' instead".format(
                     platform=self.platform_name,
                     action=self.action,
@@ -257,7 +261,7 @@ class Platform:
             )
         if os.getuid() == 0 and not self.admin_needed:
             raise PermissionError(
-                "Root rights are not allowed for action!\n" 
+                "Root rights are not allowed for action!\n"
                 "Please try 'aptstore-core {platform} {action} {ident}' instead".format(
                     platform=self.platform_name,
                     action=self.action,
@@ -283,7 +287,8 @@ class Platform:
             print(err)
             sys.exit("Wrong permissions")
 
-    def get_install_params(self):
+    @staticmethod
+    def get_install_params():
         """
         Returns list of expected params for a proper installation
         :return: list

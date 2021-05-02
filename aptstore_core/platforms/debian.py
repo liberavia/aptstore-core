@@ -100,14 +100,15 @@ class Debian(Platform):
         # self.follow_progress(pkg)
 
     def follow_progress(self, pkg):
-            while not self.progress_acquire.current_bytes < self.progress_acquire.total_bytes:
-                pass
+        while not self.progress_acquire.current_bytes < self.progress_acquire.total_bytes:
+            pass
 
-            print(self.action + " " + self.ident + "...")
-            while not self.progress_install.finish_update():
-                percent_installed = self.progress_install.percent
-                print(percent_installed)
+        print(self.action + " " + self.ident + "...")
+        while not self.progress_install.finish_update():
+            percent_installed = self.progress_install.percent
+            print(percent_installed)
 
+    # noinspection PyTypeChecker
     def initialize_platform(self):
         """
         Non-root steps needed for platform initialization
@@ -141,5 +142,3 @@ class Debian(Platform):
         if not self.apt_cache[self.ident]:
             return False
         return True
-
-

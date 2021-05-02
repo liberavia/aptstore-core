@@ -20,10 +20,6 @@ class Proton(Steam):
     def install_steam_app(self):
         """
         Performing installation of a steam proton app
-
-        :param appid:
-        :param login:
-        :param password:
         :return:
         """
         steamcmd = self.data['binaries']['steamcmd']
@@ -52,8 +48,7 @@ class Proton(Steam):
         start_command = ' '.join(command_elements)
         process = subprocess.Popen(start_command, shell=True, close_fds=True)
         print(
-            "Install app via {platform}. Follow progress at {logfile}".
-                format(
+            "Install app via {platform}. Follow progress at {logfile}".format(
                 platform=PLATFORM_PROTON,
                 logfile=progress_file_path)
         )

@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
-import os.path
+import json
 import re
 import sys
-import json
-import glob
 
 from . import REPORT_PATH_INSTALLED
 from .reporter import Reporter
@@ -133,8 +131,8 @@ class ReporterSteam(Reporter):
         :return:
         """
         try:
-            bytes = int(match_value)
-            kbytes = float(bytes / 1024)
+            bytes_amount = int(match_value)
+            kbytes = float(bytes_amount / 1024)
             mbytes = float(kbytes / 1024)
             megabytes = int(round(mbytes, 0))
             if match_type == 'todownload':

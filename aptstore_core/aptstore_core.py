@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-from . import platforms
-from .platforms.steam import Steam
-from .platforms.proton import Proton
-from .platforms.debian import Debian
 import sys
+
+from . import platforms
+from .platforms.debian import Debian
+from .platforms.steam import Steam
 
 
 class AptStoreCore:
@@ -74,7 +74,8 @@ class AptStoreCore:
     def set_gui_mode(self):
         self.gui_mode = True
 
-    def validate_platform(self, platform):
+    @staticmethod
+    def validate_platform(platform):
         available_platforms = platforms.get_available_platforms()
 
         if platform not in available_platforms:
@@ -82,7 +83,8 @@ class AptStoreCore:
                 "Platform {platform} not available".format(platform=platform)
             )
 
-    def validate_action(self, action):
+    @staticmethod
+    def validate_action(action):
         available_actions = platforms.get_available_actions()
         if action not in available_actions:
             raise ValueError(
