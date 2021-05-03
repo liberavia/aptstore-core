@@ -27,14 +27,10 @@ class Steam(Platform):
         super(Steam, self).__init__(**kwargs)
         self.set_login(kwargs.get('login'))
         self.set_password(kwargs.get('password'))
-        self.set_reporter(ReporterSteam(
-            login=self.login,
-            password=self.password,
-            gui_mode=self.gui_mode
-        ))
         self.platform_name = PLATFORM_STEAM
         self.data = {
             'paths': {
+                'session': self.user_home + '/.aptstore/session/steam/',
                 'purchased': self.user_home + '/.aptstore/purchased/steam/',
                 'installed': self.user_home + '/.aptstore/installed/steam/',
                 'progress': self.user_home + '/.aptstore/progress/',
@@ -62,6 +58,12 @@ class Steam(Platform):
                 }
             },
         }
+        self.set_reporter(ReporterSteam(
+            login=self.login,
+            password=self.password,
+            gui_mode=self.gui_mode,
+            session_path=self.data['paths']['session']
+        ))
         try:
             self.platform_initialized()
         except ValueError:

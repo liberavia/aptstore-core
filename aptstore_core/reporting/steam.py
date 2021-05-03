@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 import json
+import os.path
+import pickle
 import re
 import sys
 import steam.webauth as wa
@@ -15,6 +17,8 @@ class ReporterSteam(Reporter):
     captcha = None
     gui_mode = False
     two_factor_code = None
+    session_path = None
+    user = None
 
     def __init__(self, **kwargs):
         super(ReporterSteam, self).__init__(**kwargs)
@@ -22,6 +26,7 @@ class ReporterSteam(Reporter):
         self.set_login(kwargs.get('login'))
         self.set_password(kwargs.get('password'))
         self.gui_mode = kwargs.get('gui_mode')
+        self.session_path = kwargs.get('session_path')
 
     def create_installed_report(self):
         """
@@ -47,32 +52,33 @@ class ReporterSteam(Reporter):
             print("Cannot create purchase report. No login data")
             return
 
-        user = wa.WebAuth(self.login)
+        self.user = wa.WebAuth(self.login)
+        self.handle_session_cookie()
 
         try:
-            user.login(self.password)
+            self.user.login(self.password)
         except (wa.CaptchaRequired, wa.LoginIncorrect) as exp:
             if isinstance(exp, LoginIncorrect):
                 print("Abort. Steam password incorrect")
 
             if isinstance(exp, wa.CaptchaRequired):
-                self.solve_captcha(user.captcha_url)
+                self.solve_captcha(self.user.captcha_url)
                 
-            user.login(password=self.password, captcha=self.captcha)
+            self.user.login(password=self.password, captcha=self.captcha)
         except wa.EmailCodeRequired:
             message = (
                 "Your account is protected with Steam Guard.\n"
                 "A code has been sent to your E-Mail address.\n"
             )
             self.two_factor_input('Enter code: ', message)
-            user.login(email_code=self.two_factor_code)
+            self.user.login(email_code=self.two_factor_code)
         except wa.TwoFactorCodeRequired:
             message = (
                 "Your account is protected with Steam Guard.\n"
                 "A code has been sent to your mobile.\n"
             )
             self.two_factor_input('Enter code: ', message)
-            user.login(twofactor_code=self.two_factor_code)
+            self.user.login(twofactor_code=self.two_factor_code)
 
         steam_all_games_url = [
             'http://steamcommunity.com/id/',
@@ -80,7 +86,7 @@ class ReporterSteam(Reporter):
             '/games/?tab=all'
         ]
         page = ''.join(steam_all_games_url)
-        request_result = user.session.get(page)
+        request_result = self.user.session.get(page)
         site_content = request_result.text
         pattern = '\[{([^\]]+)\]'
         matches = re.findall(pattern, site_content, flags=re.DOTALL)
@@ -327,3 +333,17 @@ class ReporterSteam(Reporter):
         else:
             print(message)
             self.two_factor_code = input(prompt + ': ')
+
+    def handle_session_cookie(self):
+        """
+        Handling persisiting of a steam web session
+        :return:
+        """
+        path = self.session_path + self.platform
+        if os.path.isfile(path):
+            f = open(path, 'rb')
+            self.user.session = pickle.load(f)
+        else:
+            f = open(path, 'wb')
+            pickle.dump(self.user.session, f)
+        f.close()
