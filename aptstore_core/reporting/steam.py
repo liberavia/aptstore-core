@@ -19,6 +19,7 @@ class ReporterSteam(Reporter):
     two_factor_code = None
     session_path = None
     user = None
+    cookies = None
 
     def __init__(self, **kwargs):
         super(ReporterSteam, self).__init__(**kwargs)
@@ -53,7 +54,7 @@ class ReporterSteam(Reporter):
             return
 
         self.user = wa.WebAuth(self.login)
-        self.handle_session_cookie()
+        self.handle_request_session()
 
         try:
             self.user.login(self.password)
@@ -86,7 +87,18 @@ class ReporterSteam(Reporter):
             '/games/?tab=all'
         ]
         page = ''.join(steam_all_games_url)
-        request_result = self.user.session.get(page)
+
+        try:
+            self.cookies = self.load_request_cookies()
+        except FileNotFoundError:
+            pass
+
+        if self.cookies:
+            request_result = self.user.session.get(page, cookies=self.cookies)
+        else:
+            request_result = self.user.session.get(page)
+        self.cookies = request_result.cookies
+        self.save_request_cookies(self.cookies)
         site_content = request_result.text
         pattern = '\[{([^\]]+)\]'
         matches = re.findall(pattern, site_content, flags=re.DOTALL)
@@ -334,12 +346,12 @@ class ReporterSteam(Reporter):
             print(message)
             self.two_factor_code = input(prompt + ': ')
 
-    def handle_session_cookie(self):
+    def handle_request_session(self):
         """
         Handling persisiting of a steam web session
         :return:
         """
-        path = self.session_path + self.platform
+        path = self.session_path + self.platform + '_session.pkl'
         if os.path.isfile(path):
             f = open(path, 'rb')
             self.user.session = pickle.load(f)
@@ -347,3 +359,15 @@ class ReporterSteam(Reporter):
             f = open(path, 'wb')
             pickle.dump(self.user.session, f)
         f.close()
+
+    def save_request_cookies(self, requests_cookiejar):
+        path = self.session_path + self.platform + '_cookies.pkl'
+        with open(path, 'wb') as f:
+            pickle.dump(requests_cookiejar, f)
+
+    def load_request_cookies(self):
+        path = self.session_path + self.platform + '_cookies.pkl'
+        if not os.path.isfile(path):
+            raise FileNotFoundError('Cookie for loading not found')
+        with open(path, 'rb') as f:
+            return pickle.load(f)

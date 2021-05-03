@@ -2,6 +2,7 @@
 import glob
 import os
 import subprocess
+import sys
 import time
 from pathlib import Path
 
@@ -31,8 +32,8 @@ class Steam(Platform):
         self.data = {
             'paths': {
                 'session': self.user_home + '/.aptstore/session/steam/',
-                'purchased': self.user_home + '/.aptstore/purchased/steam/',
-                'installed': self.user_home + '/.aptstore/installed/steam/',
+                'purchased': self.user_home + '/.aptstore/reports/purchased/steam/',
+                'installed': self.user_home + '/.aptstore/reports/installed/steam/',
                 'progress': self.user_home + '/.aptstore/progress/',
                 'binaries': self.user_home + '/.aptstore/bin/',
             },
@@ -66,7 +67,9 @@ class Steam(Platform):
         ))
         try:
             self.platform_initialized()
-        except ValueError:
+        except ValueError as err:
+            print(err)
+            print("Perform complete initialization...")
             self.initialize_platform()
 
     def validate_params(self, entered_params, expected_params):
@@ -523,6 +526,7 @@ class Steam(Platform):
         """
         check_path = self.data['paths']['purchased']
         check_pattern = '*.json'
-        files = glob.glob(check_path + check_pattern)
+        pattern_path = check_path + check_pattern
+        files = glob.glob(pattern_path)
         if len(files) == 0:
             raise FileNotFoundError
