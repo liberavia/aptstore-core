@@ -2,18 +2,26 @@
 import json
 import re
 import sys
-
-from . import REPORT_PATH_INSTALLED
+import steam.webauth as wa
+import tkinter as tk
+from tkinter import simpledialog
+from . import REPORT_PATH_INSTALLED, REPORT_PATH_PURCHASED
 from .reporter import Reporter
 from ..platforms import PLATFORM_STEAM
 
 
 class ReporterSteam(Reporter):
     data = None
+    captcha = None
+    gui_mode = False
+    two_factor_code = None
 
-    def __init__(self):
-        super(ReporterSteam, self).__init__()
+    def __init__(self, **kwargs):
+        super(ReporterSteam, self).__init__(**kwargs)
         self.platform = PLATFORM_STEAM
+        self.set_login(kwargs.get('login'))
+        self.set_password(kwargs.get('password'))
+        self.gui_mode = kwargs.get('gui_mode')
 
     def create_installed_report(self):
         """
@@ -21,7 +29,7 @@ class ReporterSteam(Reporter):
         :return:
         """
         super(ReporterSteam, self).create_installed_report()
-        self.delete_installed_cache(REPORT_PATH_INSTALLED)
+        self.delete_cache(REPORT_PATH_INSTALLED)
 
         report_file = open(self.file_progress, 'r')
         for line in report_file:
@@ -29,6 +37,70 @@ class ReporterSteam(Reporter):
             self.app_name = None
             self.parse_installed_line(line)
             self.write_installed_cache_for_app()
+
+    def create_purchased_report(self):
+        """
+        Creates report of games the user has purchased
+        :return:
+        """
+        if not self.login or not self.password:
+            print("Cannot create purchase report. No login data")
+            return
+
+        user = wa.WebAuth(self.login)
+
+        try:
+            user.login(self.password)
+        except (wa.CaptchaRequired, wa.LoginIncorrect) as exp:
+            if isinstance(exp, LoginIncorrect):
+                print("Abort. Steam password incorrect")
+
+            if isinstance(exp, wa.CaptchaRequired):
+                self.solve_captcha(user.captcha_url)
+                
+            user.login(password=self.password, captcha=self.captcha)
+        except wa.EmailCodeRequired:
+            message = (
+                "Your account is protected with Steam Guard.\n"
+                "A code has been sent to your E-Mail address.\n"
+            )
+            self.two_factor_input('Enter code: ', message)
+            user.login(email_code=self.two_factor_code)
+        except wa.TwoFactorCodeRequired:
+            message = (
+                "Your account is protected with Steam Guard.\n"
+                "A code has been sent to your mobile.\n"
+            )
+            self.two_factor_input('Enter code: ', message)
+            user.login(twofactor_code=self.two_factor_code)
+
+        steam_all_games_url = [
+            'http://steamcommunity.com/id/',
+            self.login,
+            '/games/?tab=all'
+        ]
+        page = ''.join(steam_all_games_url)
+        request_result = user.session.get(page)
+        site_content = request_result.text
+        pattern = '\[{([^\]]+)\]'
+        matches = re.findall(pattern, site_content, flags=re.DOTALL)
+        result = matches[0]
+        games_json = "[{" + result + "]"
+        gamedata = json.loads(games_json)
+
+        base_path_parts = [
+            self.user_home,
+            '/.aptstore/',
+            REPORT_PATH_PURCHASED,
+            self.platform + '/',
+        ]
+        base_path = ''.join(base_path_parts)
+        for game in gamedata:
+            if not game['appid']:
+                continue
+            path = base_path + str(game['appid']) + '.json'
+            fd = open(path, 'w')
+            fd.write(json.dumps(game))
 
     def get_pathlist(self):
         """
@@ -194,3 +266,64 @@ class ReporterSteam(Reporter):
         json_data = json.dumps(app_data)
         app_file.write(json_data)
         app_file.close()
+
+    def solve_captcha(self, captcha_url):
+        """
+        Gets the input for solution of captcha. Form depends on the
+        GUI-Flag set
+        :param captcha_url:
+        :return:
+        """
+        complete_message = "{task}:\n{url}\n{prompt}".format(
+            task='Please solve captcha you see at',
+            url=captcha_url,
+            prompt='Enter solution'
+        )
+
+        if self.gui_mode:
+            form = tk.Tk()
+
+            window_width = form.winfo_reqwidth()
+            window_height = form.winfo_reqheight()
+            position_right = int(form.winfo_screenwidth() / 2 - window_width / 2)
+            position_down = int(form.winfo_screenheight() / 2 - window_height / 2)
+            form.geometry("+{}+{}".format(position_right, position_down))
+
+            form.withdraw()
+
+            self.captcha = simpledialog.askstring(
+                "Steam Captcha",
+                complete_message
+            )
+        else:
+            print(complete_message)
+            self.captcha = input('Enter solution: ')
+
+    def two_factor_input(self, prompt, message):
+        """
+        Gets an input from user. Depending if gui flag is set
+        :return:
+        """
+        if self.gui_mode:
+            form = tk.Tk()
+
+            window_width = form.winfo_reqwidth()
+            window_height = form.winfo_reqheight()
+            position_right = int(form.winfo_screenwidth() / 2 - window_width / 2)
+            position_down = int(form.winfo_screenheight() / 2 - window_height / 2)
+            form.geometry("+{}+{}".format(position_right, position_down))
+
+            form.withdraw()
+
+            complete_message = "{message}\n{prompt}".format(
+                message=message,
+                prompt=prompt
+            )
+
+            self.two_factor_code = simpledialog.askstring(
+                "Steam Guard",
+                complete_message
+            )
+        else:
+            print(message)
+            self.two_factor_code = input(prompt + ': ')

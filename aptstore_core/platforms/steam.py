@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import glob
 import os
 import subprocess
 import time
@@ -12,7 +13,7 @@ from pexpect import EOF, TIMEOUT
 from . import ACTION_ACTIVATE
 from . import PLATFORM_STEAM
 from .platform import Platform
-from ..reporting import REPORT_TYPE_INSTALLED
+from ..reporting import REPORT_TYPE_INSTALLED, REPORT_TYPE_PURCHASED, REPORT_PATH_PURCHASED
 from ..reporting import REPORT_TYPE_PROGRESS, REPORT_PATH_INSTALLED
 from ..reporting.steam import ReporterSteam
 
@@ -24,12 +25,17 @@ class Steam(Platform):
 
     def __init__(self, **kwargs):
         super(Steam, self).__init__(**kwargs)
-        self.set_reporter(ReporterSteam())
         self.set_login(kwargs.get('login'))
         self.set_password(kwargs.get('password'))
+        self.set_reporter(ReporterSteam(
+            login=self.login,
+            password=self.password,
+            gui_mode=self.gui_mode
+        ))
         self.platform_name = PLATFORM_STEAM
         self.data = {
             'paths': {
+                'purchased': self.user_home + '/.aptstore/purchased/steam/',
                 'installed': self.user_home + '/.aptstore/installed/steam/',
                 'progress': self.user_home + '/.aptstore/progress/',
                 'binaries': self.user_home + '/.aptstore/bin/',
@@ -246,6 +252,7 @@ class Steam(Platform):
         self.create_paths()
         self.perform_downloads()
         self.update_installed_apps()
+        self.update_purchased_apps()
 
     # noinspection PyTypeChecker
     def platform_initialized(self):
@@ -270,6 +277,12 @@ class Steam(Platform):
             self.check_installed_apps()
         except FileNotFoundError:
             raise ValueError("Cache for installed steam apps not created")
+
+        # cache for purchased apps built at least once
+        try:
+            self.check_purchased_apps()
+        except FileNotFoundError:
+            raise ValueError("Cache for purchased steam apps not created")
 
     # noinspection PyTypeChecker
     def check_installed_apps(self):
@@ -391,7 +404,7 @@ class Steam(Platform):
             REPORT_PATH_INSTALLED +
             'steam/'
         )
-        self.reporter.delete_installed_cache(cache_path)
+        self.reporter.delete_cache(cache_path)
 
         command_elements = [
             'unbuffer',
@@ -480,3 +493,34 @@ class Steam(Platform):
             pass
 
         child.terminate()
+
+    def update_purchased_apps(self):
+        """
+        Trigger update of purchased steam apps
+        :return:
+        """
+        cache_path = str(
+            self.user_home +
+            '/.aptstore/' +
+            REPORT_PATH_PURCHASED +
+            self.platform_name + '/'
+        )
+        print(
+            "Updating cache of purchased apps for {platform} at {cachefile}".format(
+                platform=PLATFORM_STEAM,
+                cachefile=cache_path
+            )
+        )
+        self.reporter.delete_cache(cache_path)
+        self.reporter.create_report(REPORT_TYPE_PURCHASED)
+
+    def check_purchased_apps(self):
+        """
+        Check if there is an existing cache for purchased steam apps
+        :return:
+        """
+        check_path = self.data['paths']['purchased']
+        check_pattern = '*.json'
+        files = glob.glob(check_path + check_pattern)
+        if len(files) == 0:
+            raise FileNotFoundError

@@ -42,7 +42,7 @@ class Platform:
         action = kwargs.get('action')
         self.action = action
         self.admin_needed = False
-        self.gui_mode = False
+        self.gui_mode = kwargs.get('gui_mode')
         self.data = {}
         self.set_user_environment()
 

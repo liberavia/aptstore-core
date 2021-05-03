@@ -1,3 +1,4 @@
 setuptools~=45.2.0
 requests~=2.22.0
 pexpect~=4.8
+steam~=1.2.0
