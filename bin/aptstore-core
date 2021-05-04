@@ -12,6 +12,8 @@ if os.path.isdir(os.path.join(LAUNCH_PATH, "../aptstore_core")):
     sys.path.insert(0, SOURCE_PATH)
 
 import aptstore_core.platforms as platforms
+from aptstore_core import __version__ as CURRENT_VERSION
+
 available_platforms_list = platforms.get_available_platforms()
 available_actions_list = platforms.get_available_actions()
 available_platforms = ', '.join(
@@ -22,7 +24,12 @@ available_actions = ', '.join(
 parser = argparse.ArgumentParser(
     description='Install/Remove apps from different sources.'
 )
-
+parser.add_argument(
+    '--version',
+    action='version',
+    version='%(prog)s {ver}'.format(ver=CURRENT_VERSION),
+    help = 'Print out version number and exit',
+)
 parser.add_argument(
     'platform',
     help='Allowed values are ' + available_platforms + '.'
@@ -57,6 +64,7 @@ ident = args.ident
 login = args.login
 password = args.secret
 gui = args.gui
+version = args.version
 
 from aptstore_core.aptstore_core import AptStoreCore
 

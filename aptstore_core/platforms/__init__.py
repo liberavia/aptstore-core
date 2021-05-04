@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-""" contants and stat functions """
+""" aptstore-core platforms package """
 
 ACTION_INSTALL = 'install'
 ACTION_REMOVE = 'remove'

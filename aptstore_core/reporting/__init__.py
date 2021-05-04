@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-""" contents and stat functions """
+""" aptstore-core reporting package """
 
 REPORT_TYPE_PURCHASED = 'purchased'
 REPORT_TYPE_INSTALLED = 'installed'
