@@ -2,7 +2,6 @@
 import glob
 import os
 import subprocess
-import sys
 import time
 from pathlib import Path
 
@@ -526,7 +525,7 @@ class Steam(Platform):
         """
         check_path = self.data['paths']['purchased']
         check_pattern = '*.json'
-        pattern_path = check_path + check_pattern
+        pattern_path = str(check_path) + check_pattern
         files = glob.glob(pattern_path)
         if len(files) == 0:
             raise FileNotFoundError

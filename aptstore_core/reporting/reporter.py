@@ -274,3 +274,18 @@ class Reporter:
                 os.remove(file)
             except OSError as e:
                 print("Error: %s : %s" % (file, e.strerror))
+
+    def get_purchased_path(self):
+        """
+        Returns absolute purchased path for current platform
+        :return:
+        """
+        base_path_parts = [
+            self.user_home,
+            '/.aptstore/',
+            REPORT_PATH_PURCHASED,
+            self.platform + '/',
+        ]
+        base_path = ''.join(base_path_parts)
+
+        return base_path
