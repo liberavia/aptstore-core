@@ -37,6 +37,7 @@ class AptStoreCore:
                 action=self.action,
                 login=self.login,
                 password=self.password,
+                gui_mode=self.gui_mode
             )
 
         if platform == platforms.PLATFORM_PROTON:
@@ -44,6 +45,7 @@ class AptStoreCore:
                 action=self.action,
                 login=self.login,
                 password=self.password,
+                gui_mode=self.gui_mode
             )
 
         if platform == platforms.PLATFORM_DEBIAN:

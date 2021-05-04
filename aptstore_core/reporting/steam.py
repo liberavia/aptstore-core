@@ -2,18 +2,27 @@
 import json
 import re
 import sys
+import requests
 
 from . import REPORT_PATH_INSTALLED
 from .reporter import Reporter
 from ..platforms import PLATFORM_STEAM
 
+DEFAULT_STEAM_API_KEY='FCB473938C6B101A6F419003638923D9'
+
 
 class ReporterSteam(Reporter):
     data = None
+    gui_mode = False
+    session_path = None
 
-    def __init__(self):
-        super(ReporterSteam, self).__init__()
+    def __init__(self, **kwargs):
+        super(ReporterSteam, self).__init__(**kwargs)
         self.platform = PLATFORM_STEAM
+        self.set_login(kwargs.get('login'))
+        self.set_password(kwargs.get('password'))
+        self.gui_mode = kwargs.get('gui_mode')
+        self.session_path = kwargs.get('session_path')
 
     def create_installed_report(self):
         """
@@ -21,7 +30,7 @@ class ReporterSteam(Reporter):
         :return:
         """
         super(ReporterSteam, self).create_installed_report()
-        self.delete_installed_cache(REPORT_PATH_INSTALLED)
+        self.delete_cache(REPORT_PATH_INSTALLED)
 
         report_file = open(self.file_progress, 'r')
         for line in report_file:
@@ -29,6 +38,26 @@ class ReporterSteam(Reporter):
             self.app_name = None
             self.parse_installed_line(line)
             self.write_installed_cache_for_app()
+
+    def create_purchased_report(self):
+        """
+        Creates report of games the user has purchased
+        :return:
+        """
+        if not self.login or not self.password:
+            print("Cannot create purchase report. No login data")
+            return
+
+        steam_games = self.get_steam_games()
+        base_path = self.get_purchased_path()
+
+        for game in steam_games:
+            if not game['appid']:
+                continue
+            path = base_path + str(game['appid']) + '.json'
+            fd = open(path, 'w')
+            fd.write(json.dumps(game))
+            fd.close()
 
     def get_pathlist(self):
         """
@@ -194,3 +223,43 @@ class ReporterSteam(Reporter):
         json_data = json.dumps(app_data)
         app_file.write(json_data)
         app_file.close()
+
+    def get_steam_games(self):
+        """
+        Returns list of available steam games via steam api
+        :return:
+        """
+        steamid = self.get_steam_id()
+        steam_games_url = (
+            "https://api.steampowered.com/"
+            "IPlayerService/GetOwnedGames/v0001/"
+            "?key={}&steamid={}&format=json&include_appinfo=1"
+            "&include_played_free_games=1".format(
+                DEFAULT_STEAM_API_KEY, steamid
+            )
+        )
+        response = requests.get(steam_games_url)
+        if response.status_code > 400:
+            print("Failed requesting games: {resp}".format(resp=response))
+            return []
+        json_data = response.json()
+        response = json_data['response']
+        if not response:
+            print("No games found at: {url}".format(url=steam_games_url))
+            return []
+        if 'games' in response:
+            return response['games']
+        if 'game_count' in response and response['game_count'] == 0:
+            return []
+        print("No gamedata found in: {json_data}".format(json_data=json_data))
+        return []
+
+    def get_steam_id(self):
+        url = 'http://steamcommunity.com/id/{login}'.format(login=self.login)
+        result = requests.get(url)
+        site_content = result.text
+        pattern = '\"steamid\":\"([0-9]+)\"'
+        matches = re.findall(pattern, site_content, flags=re.DOTALL)
+        steamid = matches[0]
+
+        return steamid

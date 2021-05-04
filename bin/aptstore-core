@@ -64,7 +64,6 @@ ident = args.ident
 login = args.login
 password = args.secret
 gui = args.gui
-version = args.version
 
 from aptstore_core.aptstore_core import AptStoreCore
 

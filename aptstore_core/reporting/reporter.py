@@ -17,6 +17,10 @@ class Reporter:
     file_report = None
     report_type = None
 
+    # steam
+    login = None
+    password = None
+
     # user
     sudo_mode = None
     user_name = None
@@ -39,7 +43,7 @@ class Reporter:
     download_rate = 0
     eta = ''
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         self.set_user_environment()
         self.create_paths()
         pass
@@ -49,6 +53,12 @@ class Reporter:
 
     def set_file_progress(self, path):
         self.file_progress = path
+
+    def set_login(self, login):
+        self.login = login
+
+    def set_password(self, password):
+        self.password = password
 
     def set_file_report(self):
         if not self.app_ident and self.report_type == REPORT_TYPE_PROGRESS:
@@ -257,10 +267,25 @@ class Reporter:
             avg_line_length *= 1.3
 
     @staticmethod
-    def delete_installed_cache(path):
+    def delete_cache(path):
         files = glob.glob(path + '*.json')
         for file in files:
             try:
                 os.remove(file)
             except OSError as e:
                 print("Error: %s : %s" % (file, e.strerror))
+
+    def get_purchased_path(self):
+        """
+        Returns absolute purchased path for current platform
+        :return:
+        """
+        base_path_parts = [
+            self.user_home,
+            '/.aptstore/',
+            REPORT_PATH_PURCHASED,
+            self.platform + '/',
+        ]
+        base_path = ''.join(base_path_parts)
+
+        return base_path
