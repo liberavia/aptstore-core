@@ -28,7 +28,7 @@ setup(
     author_email='andre.gregor.herrmann@mailbox.org',
     url='https://github.com/liberavia/aptstore-core',
     license=license,
-    packages=find_packages(exclude=('tests', 'docs', 'config', 'share', 'bin')),
+    packages=find_packages(exclude=('tests', 'docs', 'share', 'bin')),
     scripts=['bin/aptstore-core'],
     data_files=data_files,
     zip_safe=False,
