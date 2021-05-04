@@ -1,29 +1,20 @@
 # -*- coding: utf-8 -*-
 import json
-import os.path
-import pickle
 import re
 import sys
-import tkinter as tk
-from tkinter import simpledialog
-
-import steam.webauth as wa
-from steam.client import SteamClient
+import requests
 
 from . import REPORT_PATH_INSTALLED
 from .reporter import Reporter
 from ..platforms import PLATFORM_STEAM
 
+DEFAULT_STEAM_API_KEY='FCB473938C6B101A6F419003638923D9'
+
 
 class ReporterSteam(Reporter):
     data = None
-    captcha = None
     gui_mode = False
-    two_factor_code = None
     session_path = None
-    user = None
-    session = None
-    cookies = None
 
     def __init__(self, **kwargs):
         super(ReporterSteam, self).__init__(**kwargs)
@@ -57,33 +48,16 @@ class ReporterSteam(Reporter):
             print("Cannot create purchase report. No login data")
             return
 
-        steam_all_games_url = [
-            'http://steamcommunity.com/id/',
-            self.login,
-            '/games/?tab=all'
-        ]
-        page = ''.join(steam_all_games_url)
-
-        site_content = self.get_steam_webcontent_webauth(page)
-        # @todo: Currently prefered steamclient is not usable due to steamid
-        """
-        site_content = self.get_steam_webcontent_client(page)
-        Currently steamclient is not usable due to steamid 
-        does not seem to be generated proper.
-        Traced problem until line 646
-        r = adapter.send(request, **kwargs)
-        ends up in error
-        Process finished with exit code 134 (interrupted by signal 6: SIGABRT)
-        """
-        gamedata = self.get_gamedata(site_content)
+        steam_games = self.get_steam_games()
         base_path = self.get_purchased_path()
 
-        for game in gamedata:
+        for game in steam_games:
             if not game['appid']:
                 continue
             path = base_path + str(game['appid']) + '.json'
             fd = open(path, 'w')
             fd.write(json.dumps(game))
+            fd.close()
 
     def get_pathlist(self):
         """
@@ -250,169 +224,42 @@ class ReporterSteam(Reporter):
         app_file.write(json_data)
         app_file.close()
 
-    def solve_captcha(self, captcha_url):
+    def get_steam_games(self):
         """
-        Gets the input for solution of captcha. Form depends on the
-        GUI-Flag set
-        :param captcha_url:
+        Returns list of available steam games via steam api
         :return:
         """
-        complete_message = "{task}:\n{url}\n{prompt}".format(
-            task='Please solve captcha you see at',
-            url=captcha_url,
-            prompt='Enter solution'
+        steamid = self.get_steam_id()
+        steam_games_url = (
+            "https://api.steampowered.com/"
+            "IPlayerService/GetOwnedGames/v0001/"
+            "?key={}&steamid={}&format=json&include_appinfo=1"
+            "&include_played_free_games=1".format(
+                DEFAULT_STEAM_API_KEY, steamid
+            )
         )
+        response = requests.get(steam_games_url)
+        if response.status_code > 400:
+            print("Failed requesting games: {resp}".format(resp=response))
+            return []
+        json_data = response.json()
+        response = json_data['response']
+        if not response:
+            print("No games found at: {url}".format(url=steam_games_url))
+            return []
+        if 'games' in response:
+            return response['games']
+        if 'game_count' in response and response['game_count'] == 0:
+            return []
+        print("No gamedata found in: {json_data}".format(json_data=json_data))
+        return []
 
-        if self.gui_mode:
-            form = tk.Tk()
-
-            window_width = form.winfo_reqwidth()
-            window_height = form.winfo_reqheight()
-            position_right = int(form.winfo_screenwidth() / 2 - window_width / 2)
-            position_down = int(form.winfo_screenheight() / 2 - window_height / 2)
-            form.geometry("+{}+{}".format(position_right, position_down))
-
-            form.withdraw()
-
-            self.captcha = simpledialog.askstring(
-                "Steam Captcha",
-                complete_message
-            )
-        else:
-            print(complete_message)
-            self.captcha = input('Enter solution: ')
-
-    def two_factor_input(self, prompt, message):
-        """
-        Gets an input from user. Depending if gui flag is set
-        :return:
-        """
-        if self.gui_mode:
-            form = tk.Tk()
-
-            window_width = form.winfo_reqwidth()
-            window_height = form.winfo_reqheight()
-            position_right = int(form.winfo_screenwidth() / 2 - window_width / 2)
-            position_down = int(form.winfo_screenheight() / 2 - window_height / 2)
-            form.geometry("+{}+{}".format(position_right, position_down))
-
-            form.withdraw()
-
-            complete_message = "{message}\n{prompt}".format(
-                message=message,
-                prompt=prompt
-            )
-
-            self.two_factor_code = simpledialog.askstring(
-                "Steam Guard",
-                complete_message
-            )
-        else:
-            print(message)
-            self.two_factor_code = input(prompt + ': ')
-
-    def handle_request_session(self):
-        """
-        Handling persisting of a steam web session
-        :return:
-        """
-        path = self.session_path + self.platform + '_session.pkl'
-        if os.path.isfile(path):
-            f = open(path, 'rb')
-            self.session = pickle.load(f)
-        else:
-            f = open(path, 'wb')
-            pickle.dump(self.session, f)
-        f.close()
-
-    def save_request_cookies(self, requests_cookiejar):
-        path = self.session_path + self.platform + '_cookies.pkl'
-        with open(path, 'wb') as f:
-            pickle.dump(requests_cookiejar, f)
-
-    def load_request_cookies(self):
-        path = self.session_path + self.platform + '_cookies.pkl'
-        if not os.path.isfile(path):
-            raise FileNotFoundError('Cookie for loading not found')
-        with open(path, 'rb') as f:
-            return pickle.load(f)
-
-    def get_steam_webcontent_webauth(self, page):
-        """
-        Get content using the webauth method
-        :param page:
-        :return:
-        """
-        self.user = wa.WebAuth(self.login)
-        self.session = self.user.session
-        self.handle_request_session()
-
-        try:
-            self.user.login(self.password)
-        except (wa.CaptchaRequired, wa.LoginIncorrect) as exp:
-            if isinstance(exp, wa.LoginIncorrect):
-                print("Abort. Steam password incorrect")
-
-            if isinstance(exp, wa.CaptchaRequired):
-                self.solve_captcha(self.user.captcha_url)
-
-            self.user.login(password=self.password, captcha=self.captcha)
-        except wa.EmailCodeRequired:
-            message = (
-                "Your account is protected with Steam Guard.\n"
-                "A code has been sent to your E-Mail address.\n"
-            )
-            self.two_factor_input('Enter code: ', message)
-            self.user.login(email_code=self.two_factor_code)
-        except wa.TwoFactorCodeRequired:
-            message = (
-                "Your account is protected with Steam Guard.\n"
-                "A code has been sent to your mobile.\n"
-            )
-            self.two_factor_input('Enter code: ', message)
-            self.user.login(twofactor_code=self.two_factor_code)
-
-        request_result = self.get_request_result(page)
-        site_content = request_result.text
-
-        return site_content
-
-    def get_steam_webcontent_client(self, page):
-        client = SteamClient()
-        client.cli_login(self.login, self.password)
-        self.session = client.get_web_session()
-        self.handle_request_session()
-        request_result = self.get_request_result(page)
-        site_content = request_result.text
-
-        return site_content
-
-    @staticmethod
-    def get_gamedata(site_content):
-        """
-        Fetches gamedata from given site_content
-        :param site_content:
-        :return:
-        """
-        pattern = '\[{([^\]]+)\]'
+    def get_steam_id(self):
+        url = 'http://steamcommunity.com/id/{login}'.format(login=self.login)
+        result = requests.get(url)
+        site_content = result.text
+        pattern = '\"steamid\":\"([0-9]+)\"'
         matches = re.findall(pattern, site_content, flags=re.DOTALL)
-        result = matches[0]
-        games_json = "[{" + result + "]"
-        gamedata = json.loads(games_json)
+        steamid = matches[0]
 
-        return gamedata
-
-    def get_request_result(self, page):
-        try:
-            self.cookies = self.load_request_cookies()
-        except FileNotFoundError:
-            pass
-
-        if self.cookies:
-            request_result = self.session.get(page, cookies=self.cookies)
-        else:
-            request_result = self.session.get(page)
-        self.cookies = request_result.cookies
-        self.save_request_cookies(self.cookies)
-
-        return request_result
+        return steamid

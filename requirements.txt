@@ -1,7 +1,3 @@
 setuptools~=45.2.0
 requests~=2.22.0
 pexpect~=4.8
-eventemitter~=0.2.0
-gevent~=21.1.2
-steam~=1.2.0
-steam[client]
