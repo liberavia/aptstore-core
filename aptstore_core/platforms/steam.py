@@ -2,6 +2,7 @@
 import glob
 import os
 import subprocess
+import sys
 import time
 from pathlib import Path
 
@@ -26,7 +27,6 @@ class Steam(Platform):
     def __init__(self, **kwargs):
         super(Steam, self).__init__(**kwargs)
         self.set_login(kwargs.get('login'))
-        self.set_password(kwargs.get('password'))
         self.platform_name = PLATFORM_STEAM
         self.data = {
             'paths': {
@@ -60,7 +60,6 @@ class Steam(Platform):
         }
         self.set_reporter(ReporterSteam(
             login=self.login,
-            password=self.password,
             gui_mode=self.gui_mode,
             session_path=self.data['paths']['session']
         ))
@@ -80,7 +79,7 @@ class Steam(Platform):
         """
         super(Steam, self).validate_params(entered_params, expected_params)
 
-        if not self.login or not self.password:
+        if not self.login:
             raise ValueError("Steam needs login data")
 
     def install(self, **kwargs):
@@ -132,7 +131,6 @@ class Steam(Platform):
             steamcmd,
             '+login',
             self.login,
-            self.password,
             '+app_update',
             self.ident,
             'validate',
@@ -179,7 +177,6 @@ class Steam(Platform):
             steamcmd,
             '+login',
             self.login,
-            self.password,
         ]
         Path(progress_file_path).touch()
         progress_file = open(progress_file_path, 'w+')
@@ -197,7 +194,16 @@ class Steam(Platform):
 
         try:
             child = pexpect.spawn(command_start)
-            child.expect(expect_prompt)
+            prompt = child.after
+            matches = child.expect([expect_prompt, 'password:'])
+            if matches == 1:
+                progress_file.write("Steam asking for password")
+                self.handle_steam_password_request(child)
+            elif matches == 0:
+                print("Log in successful")
+            else:
+                print('No handler for prompt: '.format(prompt))
+                sys.exit(1)
             progress_file.write("Successfully logged in")
             command_elements_remove_app = [
                 'app_uninstall',
@@ -206,7 +212,7 @@ class Steam(Platform):
             ]
             command_remove_app = ' '.join(command_elements_remove_app)
             child.sendline(command_remove_app)
-            after = child.after
+            prompt = child.after
             child.expect(expect_prompt)
             print("App removed: " + self.ident)
             progress_file.write("App removed: " + self.ident)
@@ -216,6 +222,7 @@ class Steam(Platform):
             child.terminate()
         except EOF:
             print("EOF")
+            progress_file.write("EOF")
         except TIMEOUT:
             print("Timeout")
             progress_file.write("Timeout")
@@ -227,7 +234,7 @@ class Steam(Platform):
         except FileNotFoundError:
             pass
         self.reporter.delete_report()
-        self.update_installed_apps()
+        # self.update_installed_apps()
 
     def get_platform_dependencies(self):
         """
@@ -415,13 +422,11 @@ class Steam(Platform):
             steamcmd,
             '+login',
             self.login,
-            self.password,
             '+apps_installed',
             '+quit',
             '>',
             installed_file_path
         ]
-
         start_command = ' '.join(command_elements)
         process = subprocess.Popen(start_command, shell=True, close_fds=True)
         print(
@@ -445,15 +450,18 @@ class Steam(Platform):
         steamcmd = self.data['binaries']['steamcmd']
 
         command_elements = [
+            'unbuffer',
             steamcmd,
             '+login',
             self.login,
-            self.password,
+            '>>',
+            '/home/andre/debug.log'
         ]
 
         shell_command = ' '.join(command_elements)
 
         # define expects
+        expect_password = 'password:'
         expect_steam_guard = "Steam Guard code"
         expect_steam_captcha = "Please take a look at the captcha image"
 
@@ -461,42 +469,34 @@ class Steam(Platform):
         child = pexpect.spawn(shell_command)
         expected_match = child.expect(
             [
+                expect_password,
                 expect_steam_guard,
                 expect_steam_captcha,
                 'Steam>'
             ]
         )
 
+        print('expected match: {match}'.format(match=expected_match))
         try:
             if expected_match == 0:
-                after = child.after
-                message = (
-                    "Your account is protected with Steam Guard.\n"
-                    "A code has been sent to your E-Mail address.\n"
-                )
-                self.two_factor_input('Enter code: ', message)
-                child.sendline(self.two_factor_code)
-                child.expect('Steam>')
-                child.sendline('quit')
-            elif expected_match == 1:
-                prompt = child.after
-                message = (
-                        "Your account is protected with Steam Guard.\n"
-                        "Please enter the code of captcha from:\n" + prompt
-                )
-                self.two_factor_input('Enter code: ', message)
-                child.sendline(self.two_factor_code)
-                child.expect('Steam>')
-                child.sendline('quit')
+                self.handle_steam_password_request(child)
+                child.terminate()
+            if expected_match == 1:
+                self.handle_steam_guard_request(child)
+                child.terminate()
             elif expected_match == 2:
-                print("Steam-Login successful")
+                self.handle_steam_captcha_request(child)
+                child.terminate()
+            elif expected_match == 3:
+                print("Steam-Login successful without request")
                 child.sendline('quit')
+                child.terminate()
         except EOF:
+            child.terminate()
             pass
         except TIMEOUT:
+            child.terminate()
             pass
-
-        child.terminate()
 
     def update_purchased_apps(self):
         """
@@ -529,3 +529,73 @@ class Steam(Platform):
         files = glob.glob(pattern_path)
         if len(files) == 0:
             raise FileNotFoundError
+
+    def handle_steam_password_request(self, child):
+        prompt = child.after
+        print("Handling password request...")
+        message = (
+            "Please enter your steam password.\n"
+            "This usually needs to be done once per account\n"
+        )
+        self.two_factor_input(
+            'Steam account password',
+            'Enter secret: ',
+            message,
+            password=True
+        )
+        child.sendline(self.two_factor_code)
+        expects = [
+            'FAILED login with result code Invalid Password',
+            'Steam Guard code',
+            'Steam>',
+        ]
+        expected_match = child.expect(expects)
+        if expected_match == 0:
+            print("Wrong password! Please try again")
+            self.handle_steam_password_request(child)
+        elif expected_match == 1:
+            self.handle_steam_guard_request(child)
+        elif expected_match == 2:
+            print("Login worked")
+            child.sendline('quit')
+        else:
+            output = child.read()
+            raise ValueError(
+                "Unexpected action after password request\n{out}".format(out=output)
+            )
+        return
+
+    def handle_steam_guard_request(self, child):
+        prompt = child.after
+        print("Handling steam guard request...")
+        message = (
+            "Your account is protected with Steam Guard.\n"
+            "A code has been sent to your E-Mail address.\n"
+        )
+        self.two_factor_input(
+            'Steam Guard',
+            'Enter code: ',
+            message
+        )
+        child.sendline(self.two_factor_code)
+        child.expect('Steam>')
+        child.sendline('quit')
+        return
+
+    def handle_steam_captcha_request(self, child):
+        print("Handling captcha request...")
+        prompt = child.after
+        message = (
+                "Your account is protected with Steam Guard.\n"
+                "Please enter the code of captcha from:\n" + prompt
+        )
+        self.two_factor_input(
+            'Steam Captcha',
+            'Enter code: ',
+            message
+        )
+        child.sendline(self.two_factor_code)
+        child.expect('Steam>')
+        child.sendline('quit')
+        child.terminate()
+        return

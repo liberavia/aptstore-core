@@ -36,7 +36,6 @@ class Proton(Steam):
             '+@sSteamCmdForcePlatformType windows',
             '+login',
             self.login,
-            self.password,
             '+app_update',
             self.ident,
             'validate',

@@ -3,6 +3,7 @@ import grp
 import os
 import pwd
 import sys
+from getpass import getpass
 
 import apt
 import hashlib
@@ -33,7 +34,6 @@ class Platform:
     action = None
     ident = None
     login = None
-    password = None
     admin_needed = None
     gui_mode = None
     two_factor_code = None
@@ -48,9 +48,6 @@ class Platform:
 
     def set_login(self, login):
         self.login = login
-
-    def set_password(self, password):
-        self.password = password
 
     def set_reporter(self, reporter):
         self.reporter = reporter
@@ -311,12 +308,15 @@ class Platform:
 
         return params
 
-    def two_factor_input(self, prompt, message):
+    def two_factor_input(self, headline, prompt, message, password=False):
         """
         Gets an input from user. Depending if gui flag is set
+        :param headline:
+        :param prompt:
+        :param message:
+        :param password:
         :return:
         """
-
         if self.gui_mode:
             form = tk.Tk()
 
@@ -332,17 +332,21 @@ class Platform:
                 message=message,
                 prompt=prompt
             )
-
-            self.two_factor_code = simpledialog.askstring(
-                "Steam Guard",
-                complete_message
-            )
+            if password:
+                self.two_factor_code = simpledialog.askstring(
+                    headline,
+                    complete_message,
+                    show="*"
+                )
+            else:
+                self.two_factor_code = simpledialog.askstring(
+                    headline,
+                    complete_message
+                )
         else:
+            print(headline)
             print(message)
-            self.two_factor_code = input(prompt + ': ')
-
-    def set_two_factor_code(self, two_factor_entry_field):
-        self.two_factor_code = two_factor_entry_field.get()
+            self.two_factor_code = getpass(prompt)
 
     def set_user_environment(self):
         """

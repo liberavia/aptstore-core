@@ -18,7 +18,6 @@ class AptStoreCore:
     def __init__(self, action):
         self.set_action(action)
         self.login = ""
-        self.password = ""
 
     def set_platform(self, platform):
         """
@@ -36,7 +35,6 @@ class AptStoreCore:
             self.platform = Steam(
                 action=self.action,
                 login=self.login,
-                password=self.password,
                 gui_mode=self.gui_mode
             )
 
@@ -44,7 +42,6 @@ class AptStoreCore:
             self.platform = Steam(
                 action=self.action,
                 login=self.login,
-                password=self.password,
                 gui_mode=self.gui_mode
             )
 
@@ -60,9 +57,6 @@ class AptStoreCore:
 
     def set_login(self, login):
         self.login = login
-
-    def set_password(self, password):
-        self.password = password
 
     def set_ident(self, ident):
         """
