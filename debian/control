@@ -1,0 +1,25 @@
+Source: aptstore-core
+Section: system
+Priority: optional
+Maintainer: André Gregor-Herrmann <andre.gregor.herrmann@mailbox.org>
+Build-Depends: debhelper-compat (= 12),
+               appstream,
+               dh-sequence-python3,
+               meson,
+Rules-Requires-Root: no
+Standards-Version: 4.5.0
+Homepage: https://aptstore.org
+Vcs-Browser: https://github.com/liberavia/aptstore-core
+Vcs-Git: https://github.com/liberavia/aptstore-core.git
+
+Package: aptstore-core
+Architecture: all
+Depends: ${python3:Depends},
+         python3-requests,
+         python3-tk,
+         python3-pexpect,
+         expect
+Description: core component of aptstore appstore
+ This is the core component which takes care of installing and removing apps
+ from different platforms. Its also the tool for activating platforms
+

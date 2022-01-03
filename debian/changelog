@@ -1,0 +1,4 @@
+aptstore-core (0.1.0)
+
+  * Initial release
+  * Install/Remove apps from platforms steam, proton and debian

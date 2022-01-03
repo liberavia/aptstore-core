@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
+
+import setuptools
 from setuptools import setup, find_packages
 
 with open('README.md') as f:
@@ -28,7 +30,7 @@ setup(
     author_email='andre.gregor.herrmann@mailbox.org',
     url='https://github.com/liberavia/aptstore-core',
     license=license,
-    packages=find_packages(exclude=('tests', 'docs', 'share', 'bin')),
+    packages=find_packages(exclude=('tests', 'docs', 'share', 'bin', 'debian')),
     scripts=['bin/aptstore-core'],
     data_files=data_files,
     zip_safe=False,
@@ -46,5 +48,4 @@ setup(
         'Operating System :: Linux',
         'Topic :: System :: Installation/Setup'
     ],
-
 )

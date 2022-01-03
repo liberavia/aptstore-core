@@ -336,7 +336,7 @@ class Steam(Platform):
 
         packages = self.get_platform_dependencies()
         # steam-launcher needs to be downloaded manually
-        packages.remove('steam-launcher')
+        # packages.remove('steam-launcher')
         for pkg_name in packages:
             pkg = cache[pkg_name]
             if not pkg.is_installed:
