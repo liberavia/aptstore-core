@@ -26,11 +26,22 @@ optional arguments:
 Needed system packages:
 - python3-pip 
 - python3-tk
+- expect
+
+On debian buster do:
+```
+apt install python3-pip python3-tk expect
+```
 
 Needed pip packages:
 - setuptools~=45.2.0
 - requests~=2.22.0
 - pexpect~=4.8
+
+On debian buster do:
+```
+pip3 install setuptools request pexpect
+```
 
 # examples
 
