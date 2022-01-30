@@ -2,6 +2,7 @@
 import glob
 import os
 import subprocess
+import sys
 import time
 from pathlib import Path
 
@@ -194,25 +195,29 @@ class Steam(Platform):
 
         expect_prompt = 'Steam>'
         command_start = ' '.join(command_elements_start)
-
+        print("Command start: " + command_start)
         try:
             child = pexpect.spawn(command_start)
+            child.logfile = sys.stdout.buffer
+            after = child.after
             child.expect(expect_prompt)
             progress_file.write("Successfully logged in")
             command_elements_remove_app = [
                 'app_uninstall',
-                '-complete',
                 self.ident,
+                '-complete',
             ]
             command_remove_app = ' '.join(command_elements_remove_app)
             child.sendline(command_remove_app)
-            after = child.after
             child.expect(expect_prompt)
-            print("App removed: " + self.ident)
+            after = child.after
             progress_file.write("App removed: " + self.ident)
+            time.sleep(10)
             child.sendline('apps_installed')
             child.expect(expect_prompt)
+            after = child.after
             child.sendline('quit')
+            after = child.after
             child.terminate()
         except EOF:
             print("EOF")
