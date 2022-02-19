@@ -92,6 +92,12 @@ class ReporterSteam(Reporter):
         line = line.lstrip()
         if not line:
             print("No progress data to filter")
+        if line.startswith('Deleting in progress'):
+            self.status_message = 'Deleting app...'
+            self.percent_done = 100
+            self.download_done = 'N/A'
+            self.download_size = 'N/A'
+            self.download_rate = 'N/A'
         if line.startswith('Loading Steam API'):
             self.status_message = 'Loading Steam API...'
         if line.startswith('Logging in user'):

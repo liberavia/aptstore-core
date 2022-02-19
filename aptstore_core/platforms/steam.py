@@ -197,11 +197,12 @@ class Steam(Platform):
         command_start = ' '.join(command_elements_start)
         print("Command start: " + command_start)
         try:
+            progress_file.write("Deleting in progress")
+            self.reporter.create_report(REPORT_TYPE_PROGRESS)
             child = pexpect.spawn(command_start)
             child.logfile = sys.stdout.buffer
             after = child.after
             child.expect(expect_prompt)
-            progress_file.write("Successfully logged in")
             command_elements_remove_app = [
                 'app_uninstall',
                 self.ident,
@@ -211,7 +212,6 @@ class Steam(Platform):
             child.sendline(command_remove_app)
             child.expect(expect_prompt)
             after = child.after
-            progress_file.write("App removed: " + self.ident)
             time.sleep(10)
             child.sendline('apps_installed')
             child.expect(expect_prompt)
