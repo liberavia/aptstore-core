@@ -11,6 +11,11 @@ PLATFORM_SNAPSTORE = 'snapstore'
 PLATFORM_STEAM = 'steam'
 PLATFORM_PROTON = 'proton'
 PLATFORM_SCRIPT = 'script'
+PLATFORM_STEAMOS = 'steamos'
+"""
+@todo: PLATFORM_STEAMOS_NODE is only needed temporary until distro determination works reliable 
+"""
+PLATFORM_STEAMOS_NODE = 'steamdeck'
 
 
 def get_available_platforms():
@@ -26,6 +31,7 @@ def get_available_platforms():
         PLATFORM_STEAM,
         PLATFORM_PROTON,
         # PLATFORM_SCRIPT,
+        PLATFORM_STEAMOS,
     ]
 
     return available_platforms

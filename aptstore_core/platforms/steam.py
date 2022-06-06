@@ -13,6 +13,7 @@ from pexpect import EOF, TIMEOUT
 
 from . import ACTION_ACTIVATE
 from . import PLATFORM_STEAM
+from . import PLATFORM_STEAMOS_NODE
 from .platform import Platform
 from ..reporting import REPORT_TYPE_INSTALLED, REPORT_TYPE_PURCHASED, REPORT_PATH_PURCHASED
 from ..reporting import REPORT_TYPE_PROGRESS, REPORT_PATH_INSTALLED
@@ -306,9 +307,10 @@ class Steam(Platform):
         Perform anything needed
         :return:
         """
-        self.activate_i386()
-        self.install_system_dependencies()
-        self.install_external_packages()
+        if self.distro != PLATFORM_STEAMOS_NODE:
+            self.activate_i386()
+            self.install_system_dependencies()
+            self.install_external_packages()
 
     def check_user_permission(self):
         """

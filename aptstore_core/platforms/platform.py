@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import grp
 import os
+import platform
 import pwd
 import sys
 
@@ -11,7 +12,7 @@ import tarfile
 import tkinter as tk
 from tkinter import simpledialog
 
-from . import ACTION_ACTIVATE, ACTION_INSTALL, ACTION_REMOVE
+from . import *
 
 
 class Platform:
@@ -30,6 +31,7 @@ class Platform:
 
     data = None
     platform_name = None
+    distro = None
     action = None
     ident = None
     login = None
@@ -45,6 +47,7 @@ class Platform:
         self.gui_mode = kwargs.get('gui_mode')
         self.data = {}
         self.set_user_environment()
+        self.determine_distro()
 
     def set_login(self, login):
         self.login = login
@@ -283,6 +286,7 @@ class Platform:
         """
         try:
             self.check_user_permission()
+            self.validate_platform_availability()
         except PermissionError as err:
             print(err)
             sys.exit("Wrong permissions")
@@ -359,3 +363,28 @@ class Platform:
         self.user_id = pwd.getpwnam(self.user_name).pw_uid
         self.group_id = grp.getgrnam(self.user_name).gr_gid
         self.user_home = os.path.expanduser('~' + self.user_name)
+
+    def validate_platform_availability(self):
+        """
+        Validates if chosen platform matches underlying distribution
+        Makes sure that debian package installations can't be triggered on
+        arch system and vice versa
+        @todo: Needs to be much more versatile. Currently only for avoid installing debian packages on steamdeck
+        """
+        if self.distro == PLATFORM_STEAMOS_NODE and self.platform_name == PLATFORM_DEBIAN:
+            raise PermissionError(
+                "Platform can't be used on your distribution.\n"
+                "Please use platform that matches your distribution: '{distro}' instead".format(
+                    distro=self.distro,
+                )
+            )
+
+        pass
+
+    def determine_distro(self):
+        """
+        Determine used distro
+        @todo: network name is a bad indicator. Currently only used for steamdeck
+        """
+        self.distro = platform.node()
+        pass
